@@ -98,6 +98,13 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 <section id="v-kb" class="hidden">
   <h2>Community knowledge</h2>
   <div class="card">
+    <h3>What grows where</h3>
+    <p class="muted">Keep this up to date when something is planted or cleared. The AI uses it with every question.</p>
+    <div id="plant-list"></div>
+    <button class="btn" style="margin-top:10px" onclick="savePlantings()">Save planting</button>
+    <div id="plant-msg"></div>
+  </div>
+  <div class="card">
     <h3>Add knowledge</h3>
     <label for="kb-text">What do you know? (one tip or rule per entry)</label>
     <textarea id="kb-text" placeholder="e.g. Beans in bed 1 need 15 cm space, closer and they grow pale and tall"></textarea>
@@ -138,9 +145,11 @@ svg.spark{width:100%;height:40px;margin-top:6px}
     <h3>AI connection</h3>
     <label for="s-provider">Provider</label>
     <select id="s-provider"><option value="manual">Manual: copy/paste into any chatbot (free)</option><option value="anthropic">Claude API (Anthropic)</option><option value="openai">OpenAI API</option></select>
-    <label for="s-key">API key</label><input id="s-key" type="password" placeholder="Only stored in this browser">
-    <label for="s-model">Model</label><input id="s-model">
-    <p class="muted">The key is saved only in this browser on this device. Don't use a shared computer.</p>
+    <div id="s-key-fields">
+      <label for="s-key">API key</label><input id="s-key" type="password" placeholder="Only stored in this browser">
+      <label for="s-model">Model</label><input id="s-model">
+      <p class="muted">The key is saved only in this browser on this device. Don't use a shared computer.</p>
+    </div>
   </div>
   <div class="card">
     <h3>System prompt (the AI's rules)</h3>
@@ -178,6 +187,7 @@ svg.spark{width:100%;height:40px;margin-top:6px}
    ===================================================================== */
 const CONFIG = {
   // Replace with Rewild's real layout. "type" is passed to the AI as context.
+  // What grows in each bed is edited in the app itself (Knowledge tab → What grows where).
   beds: [
     {name:"Bed 1", type:"vegetable raised bed"},
     {name:"Bed 2", type:"vegetable raised bed"},
@@ -203,19 +213,24 @@ RULES
 5. Rewild practice rules always win over general gardening advice. In the rewilding zone never suggest watering, fertilising or tidying; suggest observing or passive measures instead.
 6. The sensor is one probe that measures in windows. Take the age of readings into account. If readings are old or missing for this spot, tell the volunteer to check the soil by hand.
 7. Plain language, short sentences, no jargon (explain any term you must use). The "why" explains the ecological reason in 1 or 2 sentences so the volunteer learns something.
-8. If you can't tell what is going on, say so in "uncertainty" and say what to look at or who to ask.
-9. Never invent knowledge entries, ids or sensor values.
+8. Use the planting register (WHAT GROWS WHERE) to know which plants are in the spot. If it says "not recorded" and the question doesn't say either, mention in "uncertainty" that you don't know what grows there.
+9. If you can't tell what is going on, say so in "uncertainty" and say what to look at or who to ask.
+10. Never invent knowledge entries, ids or sensor values.
+
+LENGTH
+Keep it short, the volunteer reads this on a phone in the garden: summary max 2 sentences, each action max 25 words, each why max 2 sentences, uncertainty max 2 sentences.
 
 OUTPUT
-Reply with JSON only, no other text, in exactly this format:
+Reply with JSON only. No text before or after it, no code fences. Exactly this format:
 {
-  "summary": "one or two sentences: what is most likely going on",
+  "summary": "what is most likely going on",
   "options": [
     {"action": "what to do, concrete", "why": "ecological reason", "sources": ["K3","SENSOR"], "basis": "local or general"}
   ],
   "uncertainty": "what you are unsure about and what to check",
   "confidence": "low, medium or high"
 }`;
+const PROMPT_VERSION = 2;  // raise this when you change DEFAULT_PROMPT, so saved copies get updated
 
 /* Example knowledge entries so the prototype isn't empty.
    These are EXAMPLES written by the design team: replace them with real
@@ -290,13 +305,25 @@ const TYPE_TAG = {farmer:"", member:"blue", rule:"red", general:"grey"};
 function store(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 function freshState(){
   return {knowledge: SEED_KNOWLEDGE.map(k=>({...k})), sensor: parseSensorCSV(SAMPLE_CSV, null).rows, logs: [],
-    settings: {provider:"manual", key:"", model:"", prompt: DEFAULT_PROMPT, demo:true}};
+    plantings: {},
+    settings: {provider:"manual", key:"", model:"", prompt: DEFAULT_PROMPT, promptV: PROMPT_VERSION, promptCustom:false, demo:true}};
 }
 function load(){
   let s=null; try{ s = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
   state = s || freshState();
   state.sensor.forEach(r=>r.t=new Date(r.t));
+  state.plantings = state.plantings || {};
+  CONFIG.beds.forEach(b=>{ if(!state.plantings[b.name]) state.plantings[b.name] = {plants:"", updated:""}; });
+  // A newer default prompt replaces the saved one, unless your group edited it in Settings.
+  if(state.settings.promptV !== PROMPT_VERSION && !state.settings.promptCustom){
+    state.settings.prompt = DEFAULT_PROMPT; state.settings.promptV = PROMPT_VERSION; store();
+  }
 }
+function aiReady(){
+  const s=state.settings;
+  return (s.provider==="anthropic"||s.provider==="openai") && !!s.key;
+}
+function plantsIn(bed){ const p=(state.plantings[bed]||{}).plants; return p && p.trim() ? p.trim() : ""; }
 
 /* =====================================================================
    SENSOR: parse CSV + rule-based summary (no AI here)
@@ -378,12 +405,18 @@ function buildUserMessage(bed, question, hasPhoto){
   const sensorLines = CONFIG.beds.map(b=>"- "+bedStatus(b.name).text).join("\n");
   const kn = relevantKnowledge(bed, question).map(k=>
     `[${k.id}] ${TYPE_LABEL[k.type]} | ${k.status==="validated"?"confirmed":"NOT YET CONFIRMED"} | applies to: ${k.bed} | ${k.text}`).join("\n");
+  const register = CONFIG.beds.map(b=>{ const p=state.plantings[b.name]||{};
+    return `- ${b.name}: ${plantsIn(b.name) || "not recorded"}${p.updated && plantsIn(b.name) ? " (updated "+p.updated+")" : ""}`; }).join("\n");
   return `LOCATION: ${bed} (${bedType(bed)})
+GROWING HERE: ${plantsIn(bed) || "not recorded"}
 DATE: ${now().toISOString().slice(0,10)}
 PHOTO: ${hasPhoto?"attached":"none"}
 
 QUESTION FROM VOLUNTEER:
 ${question}
+
+WHAT GROWS WHERE (planting register):
+${register}
 
 SENSOR SUMMARY [SENSOR] (selected spot is ${bed}):
 ${sensorLines}
@@ -402,7 +435,7 @@ async function callAI(system, user, photo){
     content.push({type:"text", text:user});
     const r = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",
       headers:{"content-type":"application/json","x-api-key":s.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model, max_tokens:1500, system, messages:[{role:"user", content}]})});
+      body:JSON.stringify({model, max_tokens:3000, system, messages:[{role:"user", content}]})});
     const j = await r.json(); if(!r.ok) throw new Error(j.error?.message || r.status);
     return j.content.filter(b=>b.type==="text").map(b=>b.text).join("");
   }
@@ -416,14 +449,42 @@ async function callAI(system, user, photo){
   }
   throw new Error("No provider");
 }
+// Reads the AI's JSON. If the answer was cut off halfway (it ran out of length),
+// it closes the open text and brackets so everything that did arrive can still be shown.
+function closeJSON(s){
+  let inStr=false, escaped=false; const stack=[];
+  for(const c of s){
+    if(inStr){ if(escaped) escaped=false; else if(c==="\\") escaped=true; else if(c==='"') inStr=false; continue; }
+    if(c==='"') inStr=true; else if(c==="{"||c==="[") stack.push(c); else if(c==="}"||c==="]") stack.pop();
+  }
+  let out=s; if(escaped) out=out.slice(0,-1); if(inStr) out+='"';
+  out=out.replace(/,\s*"[^"]*"\s*:\s*$/,"")   // a key without a value
+         .replace(/,\s*"[^"]*"\s*$/,"")        // a key that was cut off
+         .replace(/[,:]\s*$/,"");
+  while(stack.length) out += stack.pop()==="{" ? "}" : "]";
+  return out;
+}
 function parseAnswer(text){
-  const a=text.indexOf("{"), b=text.lastIndexOf("}");
-  if(a<0||b<a) return null;
-  try{ const j=JSON.parse(text.slice(a,b+1)); return Array.isArray(j.options)?j:null; }catch(e){ return null; }
+  const t = text.replace(/```(?:json)?/gi,"");
+  const a=t.indexOf("{"); if(a<0) return null;
+  const ok = j => j && Array.isArray(j.options) ? j : null;
+  const b=t.lastIndexOf("}");
+  if(b>a){ try{ const j=ok(JSON.parse(t.slice(a,b+1))); if(j) return j; }catch(e){} }
+  try{ const j=ok(JSON.parse(closeJSON(t.slice(a).trim()))); if(j){ j.cutOff=true; return j; } }catch(e){}
+  return null;
 }
 function readPhoto(){
+  // Phone photos are large: shrink to max 1280 px JPEG before sending (faster, cheaper, under API limits).
   const f=document.getElementById("q-photo").files[0]; if(!f) return Promise.resolve(null);
-  return new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>{ const [h,b64]=fr.result.split(","); res({type:h.slice(5).split(";")[0], b64, url:fr.result}); }; fr.readAsDataURL(f); });
+  return new Promise(res=>{
+    const img=new Image(), src=URL.createObjectURL(f);
+    img.onload=()=>{ const scale=Math.min(1, 1280/Math.max(img.width,img.height));
+      const c=document.createElement("canvas"); c.width=Math.round(img.width*scale); c.height=Math.round(img.height*scale);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(src);
+      const url=c.toDataURL("image/jpeg",0.82); res({type:"image/jpeg", b64:url.split(",")[1], url}); };
+    img.onerror=()=>{ URL.revokeObjectURL(src); res(null); };
+    img.src=src;
+  });
 }
 
 /* =====================================================================
@@ -436,7 +497,7 @@ async function ask(){
   const system = state.settings.prompt, user = buildUserMessage(bed, q, !!photo);
   lastAsk = {bed, question:q, system, user, photo, at:new Date().toISOString()};
   $("result").innerHTML="";
-  if(state.settings.provider==="manual" || !state.settings.key){
+  if(!aiReady()){
     $("manual-prompt").textContent = system+"\n\n=====\n\n"+user;
     $("manual-answer").value=""; $("manual").classList.remove("hidden");
     $("manual").scrollIntoView({behavior:"smooth"}); return;
@@ -444,7 +505,7 @@ async function ask(){
   $("manual").classList.add("hidden");
   const btn=$("q-go"); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Thinking…';
   try{ const raw = await callAI(system, user, photo); showResult(raw); }
-  catch(e){ $("result").innerHTML=`<div class="card notice">The AI call failed: ${esc(e.message)}. Check your key and model in Settings, or switch to manual mode.</div>`; }
+  catch(e){ $("result").innerHTML=`<div class="card notice">The AI call failed: ${esc(String(e.message).replace(/\.$/,""))}. Check the connection in Settings, or switch to manual mode.</div>`; }
   finally{ btn.disabled=false; btn.textContent="Get advice"; }
 }
 function copyPrompt(){ navigator.clipboard?.writeText($("manual-prompt").textContent).then(()=>{$("copied").textContent="Copied ✓"; setTimeout(()=>$("copied").textContent="",2000);}); }
@@ -472,6 +533,8 @@ function showResult(raw){
   if(!a){
     html = `<div class="card"><div class="notice">The answer wasn't in the expected format, so it's shown as plain text.</div><div style="white-space:pre-wrap">${esc(raw)}</div></div>`;
   } else {
+    a.options = a.options.filter(o=>o && o.action);
+    if(a.cutOff) html += `<div class="notice">The AI's answer was cut off before the end. Everything that arrived is shown below.</div>`;
     const conf={low:"red",medium:"amber",high:""}[(a.confidence||"").toLowerCase()] ?? "grey";
     html += `<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">What's likely going on</h3><span class="tag ${conf}">Confidence: ${esc(a.confidence||"?")}</span></div><p style="margin:8px 0 0">${esc(a.summary||"")}</p></div>`;
     html += `<h3 style="margin:16px 0 8px">Options, you decide</h3>`;
@@ -486,9 +549,12 @@ function showResult(raw){
     if(a.uncertainty) html += `<div class="card"><h3>Not sure about</h3><p style="margin:0">${esc(a.uncertainty)}</p></div>`;
   }
   html += `<details class="card"><summary>What the AI received (for checking)</summary><pre>${esc(lastAsk.user)}</pre></details>`;
-  const opts = a ? a.options.map((o,i)=>`<option value="${i+1}">Option ${i+1}: ${esc((o.action||"").slice(0,60))}</option>`).join("") : "";
+  const opts = a ? a.options.map((o,i)=>`<option value="${i}">Option ${i+1}: ${esc(o.action.length>60 ? o.action.slice(0,57)+"…" : o.action)}</option>`).join("") : "";
   html += `<div class="card" id="followup"><h3>After you tried something: what happened?</h3>
-    <label>What did you do?</label><select id="f-opt">${opts}<option value="other">Something else</option><option value="none">Nothing yet</option></select>
+    <label for="f-did">What did you do?</label>
+    <select id="f-did" onchange="followupFields()"><option value="followed">Followed the advice</option><option value="other">Did something else</option><option value="none">Nothing yet</option></select>
+    <div id="f-which-wrap" class="${opts?"":"hidden"}"><label for="f-opt">Which option?</label><select id="f-opt">${opts}</select></div>
+    <div id="f-other-wrap" class="hidden"><label for="f-other">What did you do instead?</label><input id="f-other"></div>
     <label>Did the advice match what you see in the garden?</label>
     <select id="f-match"><option>Yes</option><option>Partly</option><option>No</option></select>
     <label>What did you see? (short)</label><textarea id="f-text" placeholder="e.g. Mulched it, soil still moist 2 days later"></textarea>
@@ -497,9 +563,18 @@ function showResult(raw){
   $("result").innerHTML = html;
   $("result").scrollIntoView({behavior:"smooth"});
 }
+function followupFields(){
+  const did=$("f-did").value, hasOpts=$("f-opt").options.length>0;
+  $("f-which-wrap").classList.toggle("hidden", did!=="followed" || !hasOpts);
+  $("f-other-wrap").classList.toggle("hidden", did!=="other");
+}
 function saveFollowup(){
-  const opt=$("f-opt").value, match=$("f-match").value, txt=$("f-text").value.trim(), author=$("f-author").value.trim()||"Anonymous";
-  const chosen = lastAsk.answer && /^\d+$/.test(opt) ? lastAsk.answer.options[+opt-1].action : (opt==="none"?"nothing yet":"something else");
+  const did=$("f-did").value, match=$("f-match").value, txt=$("f-text").value.trim(), author=$("f-author").value.trim()||"Anonymous";
+  let chosen;
+  if(did==="followed"){ const o = lastAsk.answer && lastAsk.answer.options[+$("f-opt").value];
+    chosen = o ? `followed option ${+$("f-opt").value+1} (${o.action})` : "followed the advice"; }
+  else if(did==="other"){ chosen = "something else" + ($("f-other").value.trim() ? `: ${$("f-other").value.trim()}` : ""); }
+  else chosen = "nothing yet";
   const text = `Problem: ${lastAsk.question} | Did: ${chosen}${txt?" | Result: "+txt:""} | Advice matched: ${match}`;
   const k = addEntry({type:"member", bed:lastAsk.bed, text, author});
   state.logs.unshift({...k, kind:"followup", match, question:lastAsk.question, answer:lastAsk.answer, prompt:lastAsk.user});
@@ -531,6 +606,18 @@ function renderKB(){
     ${k.status==="pending"?`<div class="row" style="margin-top:6px"><button class="btn small" onclick="setStatus('${k.id}','validated')">Confirm (experienced farmer)</button><button class="btn small ghost" onclick="setStatus('${k.id}','rejected')">Not correct</button></div>`:""}
   </div>`).join("") || '<p class="muted">Nothing here.</p>';
 }
+function renderPlantings(){
+  $("plant-list").innerHTML = CONFIG.beds.map((b,i)=>{ const p=state.plantings[b.name]||{};
+    return `<label for="plant-${i}">${esc(b.name)}${p.updated?` <span class="muted">· updated ${esc(p.updated)}</span>`:""}</label>
+      <input id="plant-${i}" value="${esc(p.plants||"")}" placeholder="${b.name.toLowerCase().includes("rewild")?"e.g. native wildflowers, grasses":"e.g. kale, chard, leeks"}">`; }).join("");
+}
+function savePlantings(){
+  const today=new Date().toISOString().slice(0,10); let changed=0;
+  CONFIG.beds.forEach((b,i)=>{ const v=$("plant-"+i).value.trim(), p=state.plantings[b.name];
+    if(v!==(p.plants||"")){ state.plantings[b.name]={plants:v, updated:today}; changed++; } });
+  store(); renderPlantings(); updateBedStatus();
+  $("plant-msg").innerHTML=`<div class="ok-msg">${changed?`Saved (${changed} bed${changed==1?"":"s"} changed).`:"Nothing changed."}</div>`;
+}
 function quickLog(){
   const text=$("log-text").value.trim(); if(!text) return;
   const k=addEntry({type:"member", bed:$("log-bed").value, text, author:$("log-author").value.trim()||"Anonymous"});
@@ -561,9 +648,13 @@ function uploadKit(){
 /* =====================================================================
    SETTINGS / DATA
    ===================================================================== */
+function providerFields(){ const p=$("s-provider").value;
+  $("s-key-fields").classList.toggle("hidden", p!=="anthropic" && p!=="openai");
+  $("s-model").placeholder = CONFIG.defaultModels[p] || ""; }
 function fillSettings(){ const s=state.settings; $("s-provider").value=s.provider; $("s-key").value=s.key; $("s-model").value=s.model;
-  $("s-model").placeholder = CONFIG.defaultModels[s.provider] || "(not needed)"; $("s-prompt").value=s.prompt; $("s-demo").checked=s.demo; }
-function saveSettings(){ Object.assign(state.settings,{provider:$("s-provider").value, key:$("s-key").value.trim(), model:$("s-model").value.trim(), prompt:$("s-prompt").value, demo:$("s-demo").checked});
+  $("s-prompt").value=s.prompt; $("s-demo").checked=s.demo; providerFields(); }
+function saveSettings(){ Object.assign(state.settings,{provider:$("s-provider").value, key:$("s-key").value.trim(), model:$("s-model").value.trim(),
+  prompt:$("s-prompt").value, promptCustom:$("s-prompt").value!==DEFAULT_PROMPT, promptV:PROMPT_VERSION, demo:$("s-demo").checked});
   store(); $("s-msg").textContent="Saved ✓"; setTimeout(()=>$("s-msg").textContent="",2000); refresh(); }
 function resetPrompt(){ $("s-prompt").value=DEFAULT_PROMPT; }
 function download(name, text, type){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click(); }
@@ -571,7 +662,7 @@ function exportData(){ const copy={...state, settings:{...state.settings, key:""
 function exportCSV(){ const q=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
   download("rewild-knowledge.csv", ["id,type,bed,status,author,date,text", ...state.knowledge.map(k=>[k.id,k.type,k.bed,k.status,k.author,k.date,k.text].map(q).join(","))].join("\n"), "text/csv"); }
 function importData(input){ const f=input.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=()=>{ try{ const s=JSON.parse(fr.result); const key=state.settings.key;
-  state=s; state.settings.key=key; state.sensor.forEach(r=>r.t=new Date(r.t)); store(); fillSettings(); refresh(); $("s-msg").textContent="Imported ✓"; }catch(e){ alert("Not a valid backup file."); } }; fr.readAsText(f); }
+  localStorage.setItem(KEY, JSON.stringify({...s, settings:{...s.settings, key}})); load(); store(); fillSettings(); refresh(); $("s-msg").textContent="Imported ✓"; }catch(e){ alert("Not a valid backup file."); } }; fr.readAsText(f); }
 function resetAll(){ if(!confirm("Replace everything in this browser with the example data?")) return; const s=state.settings; state=freshState(); state.settings={...s, prompt:state.settings.prompt}; store(); fillSettings(); refresh(); }
 
 /* =====================================================================
@@ -586,11 +677,15 @@ function refresh(){
   const opts=CONFIG.beds.map(b=>`<option>${esc(b.name)}</option>`).join("");
   ["q-bed","kit-bed","log-bed"].forEach(id=>{ const v=$(id).value; $(id).innerHTML=opts; if(v) $(id).value=v; });
   const kv=$("kb-bed").value; $("kb-bed").innerHTML='<option>All</option>'+opts; if(kv) $("kb-bed").value=kv;
-  updateBedStatus(); renderKit(); renderKB(); renderLogs();
-  $("q-mode").textContent = (state.settings.provider==="manual"||!state.settings.key) ? "Manual AI mode (see Settings)" : "AI: "+(state.settings.model||CONFIG.defaultModels[state.settings.provider]);
+  updateBedStatus(); renderKit(); renderPlantings(); renderKB(); renderLogs();
+  const s=state.settings;
+  $("q-mode").textContent = !aiReady() ? "Manual AI mode (see Settings)"
+    : "AI: "+(s.model||CONFIG.defaultModels[s.provider]);
 }
-function updateBedStatus(){ const s=bedStatus($("q-bed").value); $("q-bedstatus").innerHTML=`<span class="lvl ${s.level}" style="font-size:12px;padding:2px 8px;border-radius:99px">${s.label}</span> ${esc(s.text)}`; }
-$("s-provider").addEventListener("change",()=>{$("s-model").placeholder=CONFIG.defaultModels[$("s-provider").value]||"(not needed)";});
+function updateBedStatus(){ const bed=$("q-bed").value, s=bedStatus(bed), p=plantsIn(bed);
+  $("q-bedstatus").innerHTML=`<span class="lvl ${s.level}" style="font-size:12px;padding:2px 8px;border-radius:99px">${s.label}</span> ${esc(s.text)}`
+    + `<div style="margin-top:6px">🌿 ${p ? "Growing here: "+esc(p) : '<span class="muted">What grows here isn\'t filled in yet (Knowledge tab → What grows where).</span>'}</div>`; }
+$("s-provider").addEventListener("change", providerFields);
 
 load(); refresh();
 $("q-bed").addEventListener("change", updateBedStatus);
