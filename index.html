@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rewild Farming Assistant</title>
+<style>
+:root{
+  --bg:#f4f1ea; --card:#fffdf8; --ink:#1f2a1f; --muted:#5d6b5a; --line:#ddd6c8;
+  --green:#2f6b3a; --green-soft:#e2eedf; --amber:#a86a12; --amber-soft:#f7ead3;
+  --red:#a63a2a; --red-soft:#f6dfda; --blue:#2c5a7a; --blue-soft:#dde9f1;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--green);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:17px;margin:0;font-weight:650}
+header button{background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:8px;padding:4px 10px;font-size:13px}
+main{max-width:680px;margin:0 auto;padding:16px 16px 96px}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;z-index:5}
+nav button{flex:1;border:0;background:none;padding:10px 4px 12px;font-size:13px;color:var(--muted)}
+nav button.on{color:var(--green);font-weight:650;box-shadow:inset 0 3px 0 var(--green)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+h2{font-size:18px;margin:4px 0 12px} h3{font-size:15px;margin:0 0 6px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input,select,textarea{width:100%;font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+textarea{min-height:80px;resize:vertical}
+.btn{display:inline-block;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;background:var(--green);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--green);border:1px solid var(--green)}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.5}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.muted{color:var(--muted);font-size:13px}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--green-soft);color:var(--green);margin:2px 4px 2px 0;border:0;cursor:pointer}
+.tag.amber{background:var(--amber-soft);color:var(--amber)} .tag.red{background:var(--red-soft);color:var(--red)} .tag.blue{background:var(--blue-soft);color:var(--blue)} .tag.grey{background:#ece8df;color:var(--muted)}
+.status{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.status .lvl{font-weight:700;font-size:13px;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.lvl.dry{background:var(--amber-soft);color:var(--amber)} .lvl.ok{background:var(--green-soft);color:var(--green)} .lvl.wet{background:var(--blue-soft);color:var(--blue)} .lvl.none{background:#ece8df;color:var(--muted)}
+.option{border-left:4px solid var(--green)} .option.general{border-left-color:var(--amber)}
+.srcbox{margin-top:6px;padding:8px 10px;background:var(--bg);border-radius:8px;font-size:13px}
+details summary{cursor:pointer;color:var(--muted);font-size:13px}
+pre{white-space:pre-wrap;font-size:12px;background:#f0ece3;padding:10px;border-radius:8px;max-height:320px;overflow:auto}
+.hidden{display:none}
+.notice{background:var(--amber-soft);color:#5a3b07;border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:10px}
+.ok-msg{background:var(--green-soft);color:var(--green);border-radius:8px;padding:8px 10px;font-size:13px;margin-top:8px}
+svg.spark{width:100%;height:40px;margin-top:6px}
+.kb{border-bottom:1px solid var(--line);padding:10px 0} .kb:last-child{border:0}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-right-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header><h1>🌱 Rewild Farming Assistant</h1><button onclick="show('settings')">⚙ Settings</button></header>
+<main>
+
+<!-- ============ ASK ============ -->
+<section id="v-ask">
+  <div class="card">
+    <h2>What do you see in the garden?</h2>
+    <label for="q-bed">Where?</label>
+    <select id="q-bed"></select>
+    <label for="q-text">Describe it in your own words</label>
+    <textarea id="q-text" placeholder="e.g. The kale is turning yellow and the bottom leaves are drooping"></textarea>
+    <label for="q-photo">Photo (optional)</label>
+    <input id="q-photo" type="file" accept="image/*">
+    <div id="q-bedstatus" class="srcbox"></div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="q-go" onclick="ask()">Get advice</button><span id="q-mode" class="muted"></span></div>
+  </div>
+
+  <!-- manual (copy/paste) mode -->
+  <div class="card hidden" id="manual">
+    <h3>Manual AI mode</h3>
+    <p class="muted">No API key set. Copy this prompt into ChatGPT, Claude or Gemini (attach the photo there if you have one), then paste the answer below.</p>
+    <div class="row"><button class="btn small" onclick="copyPrompt()">Copy prompt</button><span id="copied" class="muted"></span></div>
+    <details style="margin-top:8px"><summary>Show prompt</summary><pre id="manual-prompt"></pre></details>
+    <label for="manual-answer">Paste the AI's answer</label>
+    <textarea id="manual-answer"></textarea>
+    <button class="btn" style="margin-top:8px" onclick="useManual()">Show advice</button>
+  </div>
+
+  <div id="result"></div>
+</section>
+
+<!-- ============ KIT DATA ============ -->
+<section id="v-kit" class="hidden">
+  <h2>Kit data</h2>
+  <div id="kit-cards"></div>
+  <div class="card">
+    <h3>Upload readings from the Smart Citizen Kit</h3>
+    <p class="muted">CSV file. Needs a time column and at least one of: soil moisture, temperature, humidity, light. If the file has no "bed" column, choose where the probe was placed.</p>
+    <label for="kit-bed">Probe was in</label><select id="kit-bed"></select>
+    <label for="kit-file">CSV file</label><input id="kit-file" type="file" accept=".csv,text/csv">
+    <button class="btn" style="margin-top:10px" onclick="uploadKit()">Add readings</button>
+    <div id="kit-msg"></div>
+  </div>
+</section>
+
+<!-- ============ KNOWLEDGE ============ -->
+<section id="v-kb" class="hidden">
+  <h2>Community knowledge</h2>
+  <div class="card">
+    <h3>Add knowledge</h3>
+    <label for="kb-text">What do you know? (one tip or rule per entry)</label>
+    <textarea id="kb-text" placeholder="e.g. Beans in bed 1 need 15 cm space, closer and they grow pale and tall"></textarea>
+    <div class="row">
+      <div style="flex:1;min-width:140px"><label for="kb-type">I am / this is</label>
+        <select id="kb-type"><option value="farmer">Experienced farmer</option><option value="member">Member observation</option><option value="rule">Rewild practice rule</option><option value="general">General knowledge</option></select></div>
+      <div style="flex:1;min-width:140px"><label for="kb-bed">Applies to</label><select id="kb-bed"></select></div>
+    </div>
+    <label for="kb-author">Your name</label><input id="kb-author">
+    <button class="btn" style="margin-top:10px" onclick="addKnowledge()">Save</button>
+    <div id="kb-msg"></div>
+  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h3 style="margin:0">Knowledge base</h3>
+      <select id="kb-filter" style="width:auto" onchange="renderKB()"><option value="all">All</option><option value="pending">Needs checking</option><option value="validated">Confirmed</option></select></div>
+    <div id="kb-list"></div>
+  </div>
+</section>
+
+<!-- ============ LOG ============ -->
+<section id="v-log" class="hidden">
+  <h2>Quick log</h2>
+  <div class="card">
+    <p class="muted">Saw or did something in the garden? Log it in under a minute. It becomes knowledge others can learn from once an experienced farmer confirms it.</p>
+    <label for="log-bed">Where?</label><select id="log-bed"></select>
+    <label for="log-text">What did you see or do?</label><textarea id="log-text" placeholder="e.g. Mulched bed 3 with straw, soil was bone dry 5 cm down"></textarea>
+    <label for="log-author">Your name</label><input id="log-author">
+    <button class="btn" style="margin-top:10px" onclick="quickLog()">Log it</button>
+    <div id="log-msg"></div>
+  </div>
+  <div class="card"><h3>Recent logs</h3><div id="log-list"></div></div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section id="v-settings" class="hidden">
+  <h2>Settings</h2>
+  <div class="card">
+    <h3>AI connection</h3>
+    <label for="s-provider">Provider</label>
+    <select id="s-provider"><option value="manual">Manual: copy/paste into any chatbot (free)</option><option value="anthropic">Claude API (Anthropic)</option><option value="openai">OpenAI API</option></select>
+    <label for="s-key">API key</label><input id="s-key" type="password" placeholder="Only stored in this browser">
+    <label for="s-model">Model</label><input id="s-model">
+    <p class="muted">The key is saved only in this browser on this device. Don't use a shared computer.</p>
+  </div>
+  <div class="card">
+    <h3>System prompt (the AI's rules)</h3>
+    <p class="muted">Edit and test. Changes apply to the next question.</p>
+    <textarea id="s-prompt" style="min-height:260px;font-size:13px"></textarea>
+    <div class="row" style="margin-top:8px"><button class="btn small ghost" onclick="resetPrompt()">Reset to default</button></div>
+  </div>
+  <div class="card">
+    <h3>Demo</h3>
+    <label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" id="s-demo" style="width:auto"> Pretend today is the day after the last kit reading</label>
+    <p class="muted">Useful with old or example data, so readings don't all show as stale.</p>
+  </div>
+  <div class="card">
+    <h3>Data</h3>
+    <p class="muted">Everything is stored in this browser. Download a backup to move it to another device or share it with your group.</p>
+    <div class="row"><button class="btn small" onclick="exportData()">Download backup</button>
+      <label class="btn small ghost" style="margin:0;color:var(--green)">Import backup<input type="file" accept=".json" class="hidden" onchange="importData(this)"></label>
+      <button class="btn small ghost" onclick="exportCSV()">Knowledge as CSV</button>
+      <button class="btn small ghost" style="color:var(--red);border-color:var(--red)" onclick="resetAll()">Reset to example data</button></div>
+  </div>
+  <button class="btn" onclick="saveSettings()">Save settings</button> <span id="s-msg" class="muted"></span>
+</section>
+
+</main>
+<nav>
+  <button data-v="ask" class="on" onclick="show('ask')">💬 Ask</button>
+  <button data-v="kit" onclick="show('kit')">📈 Kit data</button>
+  <button data-v="kb" onclick="show('kb')">📚 Knowledge</button>
+  <button data-v="log" onclick="show('log')">✏️ Log</button>
+</nav>
+
+<script>
+/* =====================================================================
+   CONFIG: the parts your group edits.
+   ===================================================================== */
+const CONFIG = {
+  // Replace with Rewild's real layout. "type" is passed to the AI as context.
+  beds: [
+    {name:"Bed 1", type:"vegetable raised bed"},
+    {name:"Bed 2", type:"vegetable raised bed"},
+    {name:"Bed 3", type:"vegetable raised bed"},
+    {name:"Bed 4", type:"vegetable raised bed"},
+    {name:"Rewilding zone", type:"rewilding area with native species, low intervention: no watering, no fertiliser, no weeding except invasive species"}
+  ],
+  // Soil moisture thresholds (%) for the status cards. Tune with an experienced farmer.
+  soilDry: 25, soilWet: 60,
+  trendDelta: 5,        // change in daily mean (%-points) that counts as rising/falling
+  oldAfterDays: 3,      // readings older than this are flagged as old
+  maxKnowledgeInPrompt: 40,
+  defaultModels: {anthropic:"claude-sonnet-5-5", openai:"gpt-4o-mini"}
+};
+
+const DEFAULT_PROMPT = `You are the Rewild Farming assistant. You help volunteers of Rewild Farming, a community-run regenerative farm and rewilding project on unused land in Eindhoven (NL). Most volunteers have little farming experience. Your job is to help them understand what is happening and decide what to do, not to decide for them.
+
+RULES
+1. Give 2 or 3 possible actions, not one instruction. The volunteer chooses.
+2. Every option cites its sources by id: knowledge ids like K3, SENSOR for the sensor summary, GENERAL for your own general knowledge.
+3. Prefer local knowledge (experienced farmers, Rewild practice rules, confirmed observations) over general knowledge. Set "basis" to "general" when an option relies only on GENERAL: it has not been tested on this plot.
+4. Unconfirmed member observations are hints, not facts. Say so when you use one.
+5. Rewild practice rules always win over general gardening advice. In the rewilding zone never suggest watering, fertilising or tidying; suggest observing or passive measures instead.
+6. The sensor is one probe that measures in windows. Take the age of readings into account. If readings are old or missing for this spot, tell the volunteer to check the soil by hand.
+7. Plain language, short sentences, no jargon (explain any term you must use). The "why" explains the ecological reason in 1 or 2 sentences so the volunteer learns something.
+8. If you can't tell what is going on, say so in "uncertainty" and say what to look at or who to ask.
+9. Never invent knowledge entries, ids or sensor values.
+
+OUTPUT
+Reply with JSON only, no other text, in exactly this format:
+{
+  "summary": "one or two sentences: what is most likely going on",
+  "options": [
+    {"action": "what to do, concrete", "why": "ecological reason", "sources": ["K3","SENSOR"], "basis": "local or general"}
+  ],
+  "uncertainty": "what you are unsure about and what to check",
+  "confidence": "low, medium or high"
+}`;
+
+/* Example knowledge entries so the prototype isn't empty.
+   These are EXAMPLES written by the design team: replace them with real
+   knowledge from Bram, Benjamin and experienced farmers. */
+const SEED_KNOWLEDGE = [
+  {type:"rule", bed:"Rewilding zone", text:"The rewilding zone is not watered, fertilised or weeded. We let it find its own balance. Only invasive species are removed."},
+  {type:"rule", bed:"All", text:"The ground is polluted, so food is only grown in raised beds with clean soil. Never plant food crops directly in the ground."},
+  {type:"rule", bed:"All", text:"No chemical pesticides or artificial fertiliser anywhere on the plot."},
+  {type:"farmer", bed:"All", text:"In dry spells, a 5 to 10 cm layer of mulch (straw, wood chips, cut grass) keeps raised beds moist much longer. If you water, water early in the morning, deeply and less often."},
+  {type:"farmer", bed:"Bed 3", text:"Bed 3 gets full sun all afternoon and dries out faster than the other beds."},
+  {type:"farmer", bed:"All", text:"Kale with yellowing lower leaves in dry soil is usually drought stress. If the soil is wet and the plant still wilts, check the roots for rot or cabbage root fly."},
+  {type:"farmer", bed:"All", text:"Cabbage white caterpillars: check under the leaves and pick them off by hand. A fine net over brassicas prevents them. We don't spray."},
+  {type:"farmer", bed:"Rewilding zone", text:"Brown, dry patches in the rewilding zone in late summer are normal. Native plants go dormant and come back after rain."},
+  {type:"member", bed:"Bed 1", text:"Beans in bed 1 grew tall and pale when planted close together. 15 cm apart worked better.", validated:true},
+  {type:"member", bed:"Bed 3", text:"Saw small white butterflies around the kale and some holes in the leaves.", validated:false},
+  {type:"general", bed:"All", text:"Compost from the farm's own heap can be spread on top of raised beds in autumn to feed the soil."}
+].map((k,i)=>({id:"K"+(i+1), type:k.type, bed:k.bed, text:k.text, author:"Example entry (replace)", date:"2026-10-01",
+  status:(k.validated===false)?"pending":"validated"}));
+
+const SAMPLE_CSV = `timestamp,bed,soil_moisture_pct,air_temp_c,humidity_pct,light_lux
+2026-09-28 08:00,Bed 3,37.2,12.5,84,2000
+2026-09-28 10:00,Bed 3,37.3,14.1,79,11201
+2026-09-28 12:00,Bed 3,36.4,17.5,69,16213
+2026-09-28 14:00,Bed 3,35.7,18.3,58,31129
+2026-09-28 16:00,Bed 3,36.6,17.7,70,15547
+2026-09-28 18:00,Bed 3,35.8,14.6,78,11418
+2026-09-29 08:00,Bed 1,45.2,13.8,86,2000
+2026-09-29 10:00,Bed 1,44.9,15.0,77,8357
+2026-09-29 12:00,Bed 1,45.7,17.9,69,16401
+2026-09-29 14:00,Bed 1,44.6,19.8,62,30176
+2026-09-29 16:00,Bed 1,43.8,17.0,69,17448
+2026-09-29 18:00,Bed 1,43.1,14.3,79,8172
+2026-09-30 08:00,Bed 3,33.3,12.1,84,2000
+2026-09-30 10:00,Bed 3,32.2,14.9,80,8782
+2026-09-30 12:00,Bed 3,31.4,16.8,69,16210
+2026-09-30 14:00,Bed 3,32.0,18.7,59,26702
+2026-09-30 16:00,Bed 3,30.2,17.8,66,15830
+2026-09-30 18:00,Bed 3,30.7,15.5,75,9324
+2026-10-01 08:00,Rewilding zone,20.9,12.4,82,2000
+2026-10-01 10:00,Rewilding zone,21.4,15.8,78,11839
+2026-10-01 12:00,Rewilding zone,19.6,16.0,71,20201
+2026-10-01 14:00,Rewilding zone,20.4,18.8,61,29815
+2026-10-01 16:00,Rewilding zone,18.4,16.6,68,15091
+2026-10-01 18:00,Rewilding zone,19.4,14.8,76,8037
+2026-10-02 08:00,Bed 3,26.3,12.1,87,2000
+2026-10-02 10:00,Bed 3,25.7,14.6,80,9695
+2026-10-02 12:00,Bed 3,25.1,16.4,66,15349
+2026-10-02 14:00,Bed 3,24.8,19.4,57,25888
+2026-10-02 16:00,Bed 3,26.0,16.5,66,18233
+2026-10-02 18:00,Bed 3,24.3,15.5,80,9911
+2026-10-03 08:00,Bed 1,42.8,12.5,82,2000
+2026-10-03 10:00,Bed 1,43.3,14.5,79,9994
+2026-10-03 12:00,Bed 1,41.5,16.1,67,15664
+2026-10-03 14:00,Bed 1,42.2,18.5,58,20615
+2026-10-03 16:00,Bed 1,41.1,17.9,71,17223
+2026-10-03 18:00,Bed 1,40.8,15.8,78,10978
+2026-10-04 08:00,Bed 3,20.2,13.0,83,2000
+2026-10-04 10:00,Bed 3,21.3,15.8,76,10627
+2026-10-04 12:00,Bed 3,20.3,17.6,70,18224
+2026-10-04 14:00,Bed 3,19.9,19.3,59,31073
+2026-10-04 16:00,Bed 3,18.1,17.9,71,21694
+2026-10-04 18:00,Bed 3,17.6,15.3,79,8510`;
+
+/* =====================================================================
+   STATE (saved in this browser)
+   ===================================================================== */
+const KEY = "rewild-proto-v1";
+let state, lastAsk = null;
+const TYPE_LABEL = {farmer:"Experienced farmer", member:"Member observation", rule:"Rewild rule", general:"General knowledge"};
+const TYPE_TAG = {farmer:"", member:"blue", rule:"red", general:"grey"};
+
+function store(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function freshState(){
+  return {knowledge: SEED_KNOWLEDGE.map(k=>({...k})), sensor: parseSensorCSV(SAMPLE_CSV, null).rows, logs: [],
+    settings: {provider:"manual", key:"", model:"", prompt: DEFAULT_PROMPT, demo:true}};
+}
+function load(){
+  let s=null; try{ s = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
+  state = s || freshState();
+  state.sensor.forEach(r=>r.t=new Date(r.t));
+}
+
+/* =====================================================================
+   SENSOR: parse CSV + rule-based summary (no AI here)
+   ===================================================================== */
+function splitCSV(line){
+  const out=[]; let cur="", q=false;
+  for(const c of line){ if(c=='"'){q=!q;} else if((c==','||c==';')&&!q){out.push(cur);cur="";} else cur+=c; }
+  out.push(cur); return out.map(s=>s.trim());
+}
+function parseSensorCSV(text, fallbackBed){
+  const lines = text.trim().split(/\r?\n/).filter(l=>l.trim() && !l.startsWith("#"));
+  const head = splitCSV(lines[0]).map(h=>h.toLowerCase());
+  const find = (...keys)=>head.findIndex(h=>keys.some(k=>h.includes(k)));
+  const iT=find("time","date"), iB=find("bed","location","place"), iS=find("soil","moist"),
+        iA=head.findIndex(h=>h.includes("temp")&&!h.includes("soil")), iH=find("hum"), iL=find("light","lux");
+  if(iT<0) throw new Error("No time/date column found.");
+  if(iS<0 && iA<0 && iH<0 && iL<0) throw new Error("No soil moisture, temperature, humidity or light column found.");
+  const num = (cells,i)=>{ if(i<0) return null; const v=parseFloat((cells[i]||"").replace(",",".")); return isNaN(v)?null:v; };
+  const rows=[]; let skipped=0;
+  for(const l of lines.slice(1)){
+    const c=splitCSV(l); const t=new Date((c[iT]||"").replace(" ","T"));
+    const bed = iB>=0 && c[iB] ? c[iB] : fallbackBed;
+    if(isNaN(t) || !bed){ skipped++; continue; }
+    rows.push({t, bed, soil:num(c,iS), temp:num(c,iA), hum:num(c,iH), light:num(c,iL)});
+  }
+  return {rows, skipped};
+}
+const DAY=864e5;
+function now(){
+  if(state.settings.demo && state.sensor.length){ return new Date(Math.max(...state.sensor.map(r=>+r.t)) + DAY/2); }
+  return new Date();
+}
+function ageText(days){ if(days<1) return Math.max(1,Math.round(days*24))+" hours ago"; const d=Math.round(days); return d+(d==1?" day ago":" days ago"); }
+function bedStatus(bed){
+  const rows = state.sensor.filter(r=>r.bed===bed).sort((a,b)=>a.t-b.t);
+  if(!rows.length) return {bed, level:"none", label:"No data", text:`${bed}: no sensor readings yet.`, rows};
+  const last=rows[rows.length-1], age=(now()-last.t)/DAY;
+  const soilRows = rows.filter(r=>r.soil!=null && last.t-r.t<=7*DAY);
+  const byDay={}; soilRows.forEach(r=>{ const k=r.t.toISOString().slice(0,10); (byDay[k]=byDay[k]||[]).push(r.soil); });
+  const means=Object.keys(byDay).sort().map(k=>byDay[k].reduce((a,b)=>a+b,0)/byDay[k].length);
+  let trend="no trend yet";
+  if(means.length>=2){ const d=means[means.length-1]-means[0]; trend = d<-CONFIG.trendDelta?"falling":d>CONFIG.trendDelta?"rising":"stable"; }
+  const lastSoil=[...rows].reverse().find(r=>r.soil!=null);
+  let level="none", label="No soil data", parts=[];
+  if(lastSoil){ const m=lastSoil.soil; level = m<CONFIG.soilDry?"dry":m>CONFIG.soilWet?"wet":"ok";
+    label={dry:"Dry",ok:"OK",wet:"Wet"}[level];
+    parts.push(`soil moisture ${m.toFixed(0)}% (${label.toLowerCase()}), ${trend} over ${means.length} measuring day${means.length==1?"":"s"}`); }
+  if(last.temp!=null) parts.push(`air ${last.temp.toFixed(0)}°C`);
+  if(last.hum!=null) parts.push(`humidity ${last.hum.toFixed(0)}%`);
+  const old = age>CONFIG.oldAfterDays;
+  const text = `${bed}: ${parts.join(", ")}. Last reading ${ageText(age)}${old?" (old, check the soil by hand)":""}.`;
+  return {bed, level, label, text, old, rows, trend};
+}
+function sparkline(rows){
+  const pts=rows.filter(r=>r.soil!=null); if(pts.length<2) return "";
+  const t0=+pts[0].t, t1=+pts[pts.length-1].t, lo=0, hi=Math.max(70,...pts.map(p=>p.soil));
+  const x=t=>((t-t0)/(t1-t0||1))*300, y=v=>38-(v-lo)/(hi-lo)*36;
+  const d=pts.map((p,i)=>(i?"L":"M")+x(+p.t).toFixed(1)+","+y(p.soil).toFixed(1)).join(" ");
+  return `<svg class="spark" viewBox="0 0 300 40" preserveAspectRatio="none" aria-label="soil moisture over time">
+    <rect x="0" y="${y(CONFIG.soilDry)}" width="300" height="${38-y(CONFIG.soilDry)}" fill="#f7ead3"/>
+    <path d="${d}" fill="none" stroke="#2f6b3a" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>
+    <div class="muted">Soil moisture, ${pts[0].t.toLocaleDateString()} – ${pts[pts.length-1].t.toLocaleDateString()} · shaded = dry</div>`;
+}
+
+/* =====================================================================
+   PROMPT BUILDING (this is what the AI receives)
+   ===================================================================== */
+function bedType(name){ return (CONFIG.beds.find(b=>b.name===name)||{}).type||""; }
+function relevantKnowledge(bed, question){
+  let ks = state.knowledge.filter(k=>k.status!=="rejected" && (k.bed==="All" || k.bed===bed));
+  if(ks.length > CONFIG.maxKnowledgeInPrompt){
+    const words = new Set(question.toLowerCase().split(/\W+/).filter(w=>w.length>3));
+    const score = k=>k.text.toLowerCase().split(/\W+/).filter(w=>words.has(w)).length + (k.type==="rule"?100:0) + (k.bed===bed?1:0);
+    ks = ks.map(k=>[score(k),k]).sort((a,b)=>b[0]-a[0]).slice(0,CONFIG.maxKnowledgeInPrompt).map(x=>x[1]);
+  }
+  return ks;
+}
+function buildUserMessage(bed, question, hasPhoto){
+  const sensorLines = CONFIG.beds.map(b=>"- "+bedStatus(b.name).text).join("\n");
+  const kn = relevantKnowledge(bed, question).map(k=>
+    `[${k.id}] ${TYPE_LABEL[k.type]} | ${k.status==="validated"?"confirmed":"NOT YET CONFIRMED"} | applies to: ${k.bed} | ${k.text}`).join("\n");
+  return `LOCATION: ${bed} (${bedType(bed)})
+DATE: ${now().toISOString().slice(0,10)}
+PHOTO: ${hasPhoto?"attached":"none"}
+
+QUESTION FROM VOLUNTEER:
+${question}
+
+SENSOR SUMMARY [SENSOR] (selected spot is ${bed}):
+${sensorLines}
+
+COMMUNITY KNOWLEDGE:
+${kn || "(none yet)"}`;
+}
+
+/* =====================================================================
+   AI CALLS
+   ===================================================================== */
+async function callAI(system, user, photo){
+  const s=state.settings, model = s.model || CONFIG.defaultModels[s.provider];
+  if(s.provider==="anthropic"){
+    const content=[]; if(photo) content.push({type:"image", source:{type:"base64", media_type:photo.type, data:photo.b64}});
+    content.push({type:"text", text:user});
+    const r = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",
+      headers:{"content-type":"application/json","x-api-key":s.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model, max_tokens:1500, system, messages:[{role:"user", content}]})});
+    const j = await r.json(); if(!r.ok) throw new Error(j.error?.message || r.status);
+    return j.content.filter(b=>b.type==="text").map(b=>b.text).join("");
+  }
+  if(s.provider==="openai"){
+    const content=[{type:"text", text:user}]; if(photo) content.push({type:"image_url", image_url:{url:`data:${photo.type};base64,${photo.b64}`}});
+    const r = await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",
+      headers:{"content-type":"application/json","authorization":"Bearer "+s.key},
+      body:JSON.stringify({model, messages:[{role:"system",content:system},{role:"user",content}], response_format:{type:"json_object"}})});
+    const j = await r.json(); if(!r.ok) throw new Error(j.error?.message || r.status);
+    return j.choices[0].message.content;
+  }
+  throw new Error("No provider");
+}
+function parseAnswer(text){
+  const a=text.indexOf("{"), b=text.lastIndexOf("}");
+  if(a<0||b<a) return null;
+  try{ const j=JSON.parse(text.slice(a,b+1)); return Array.isArray(j.options)?j:null; }catch(e){ return null; }
+}
+function readPhoto(){
+  const f=document.getElementById("q-photo").files[0]; if(!f) return Promise.resolve(null);
+  return new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>{ const [h,b64]=fr.result.split(","); res({type:h.slice(5).split(";")[0], b64, url:fr.result}); }; fr.readAsDataURL(f); });
+}
+
+/* =====================================================================
+   ASK FLOW
+   ===================================================================== */
+async function ask(){
+  const bed=$("q-bed").value, q=$("q-text").value.trim();
+  if(!q){ $("q-text").focus(); return; }
+  const photo = await readPhoto();
+  const system = state.settings.prompt, user = buildUserMessage(bed, q, !!photo);
+  lastAsk = {bed, question:q, system, user, photo, at:new Date().toISOString()};
+  $("result").innerHTML="";
+  if(state.settings.provider==="manual" || !state.settings.key){
+    $("manual-prompt").textContent = system+"\n\n=====\n\n"+user;
+    $("manual-answer").value=""; $("manual").classList.remove("hidden");
+    $("manual").scrollIntoView({behavior:"smooth"}); return;
+  }
+  $("manual").classList.add("hidden");
+  const btn=$("q-go"); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Thinking…';
+  try{ const raw = await callAI(system, user, photo); showResult(raw); }
+  catch(e){ $("result").innerHTML=`<div class="card notice">The AI call failed: ${esc(e.message)}. Check your key and model in Settings, or switch to manual mode.</div>`; }
+  finally{ btn.disabled=false; btn.textContent="Get advice"; }
+}
+function copyPrompt(){ navigator.clipboard?.writeText($("manual-prompt").textContent).then(()=>{$("copied").textContent="Copied ✓"; setTimeout(()=>$("copied").textContent="",2000);}); }
+function useManual(){ const raw=$("manual-answer").value.trim(); if(!raw) return; $("manual").classList.add("hidden"); showResult(raw); }
+
+function sourceTag(id){
+  if(id==="SENSOR") return `<button class="tag amber" onclick="toggleSrc(this,'SENSOR')">📈 Sensor</button>`;
+  if(id==="GENERAL") return `<button class="tag grey" onclick="toggleSrc(this,'GENERAL')">🌍 General knowledge</button>`;
+  const k=state.knowledge.find(k=>k.id===id);
+  if(!k) return `<span class="tag red" title="This id does not exist in the knowledge base">⚠ ${esc(id)} (unknown)</span>`;
+  return `<button class="tag ${TYPE_TAG[k.type]}" onclick="toggleSrc(this,'${k.id}')">${k.id} · ${TYPE_LABEL[k.type]}${k.status!=="validated"?" (unconfirmed)":""}</button>`;
+}
+function toggleSrc(el,id){
+  const box=el.parentElement.nextElementSibling;
+  if(box.dataset.id===id && !box.classList.contains("hidden")){ box.classList.add("hidden"); return; }
+  let html;
+  if(id==="SENSOR") html = esc(bedStatus(lastAsk.bed).text);
+  else if(id==="GENERAL") html = "The AI's own general knowledge. Not tested on this plot yet.";
+  else { const k=state.knowledge.find(k=>k.id===id); html=`"${esc(k.text)}"<br><span class="muted">${esc(k.author)} · ${esc(k.date)} · applies to ${esc(k.bed)}</span>`; }
+  box.innerHTML=html; box.dataset.id=id; box.classList.remove("hidden");
+}
+function showResult(raw){
+  const a = parseAnswer(raw); lastAsk.raw=raw; lastAsk.answer=a;
+  let html="";
+  if(!a){
+    html = `<div class="card"><div class="notice">The answer wasn't in the expected format, so it's shown as plain text.</div><div style="white-space:pre-wrap">${esc(raw)}</div></div>`;
+  } else {
+    const conf={low:"red",medium:"amber",high:""}[(a.confidence||"").toLowerCase()] ?? "grey";
+    html += `<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">What's likely going on</h3><span class="tag ${conf}">Confidence: ${esc(a.confidence||"?")}</span></div><p style="margin:8px 0 0">${esc(a.summary||"")}</p></div>`;
+    html += `<h3 style="margin:16px 0 8px">Options, you decide</h3>`;
+    a.options.forEach((o,i)=>{
+      const general = (o.basis||"").toLowerCase().startsWith("general");
+      html += `<div class="card option ${general?"general":""}">
+        <h3>${i+1}. ${esc(o.action||"")}</h3>
+        ${general?'<span class="tag amber">Not yet tested on this plot</span>':'<span class="tag">Based on local knowledge</span>'}
+        <p style="margin:8px 0"><b>Why:</b> ${esc(o.why||"")}</p>
+        <div>${(o.sources||[]).map(sourceTag).join("")}</div><div class="srcbox hidden"></div></div>`;
+    });
+    if(a.uncertainty) html += `<div class="card"><h3>Not sure about</h3><p style="margin:0">${esc(a.uncertainty)}</p></div>`;
+  }
+  html += `<details class="card"><summary>What the AI received (for checking)</summary><pre>${esc(lastAsk.user)}</pre></details>`;
+  const opts = a ? a.options.map((o,i)=>`<option value="${i+1}">Option ${i+1}: ${esc((o.action||"").slice(0,60))}</option>`).join("") : "";
+  html += `<div class="card" id="followup"><h3>After you tried something: what happened?</h3>
+    <label>What did you do?</label><select id="f-opt">${opts}<option value="other">Something else</option><option value="none">Nothing yet</option></select>
+    <label>Did the advice match what you see in the garden?</label>
+    <select id="f-match"><option>Yes</option><option>Partly</option><option>No</option></select>
+    <label>What did you see? (short)</label><textarea id="f-text" placeholder="e.g. Mulched it, soil still moist 2 days later"></textarea>
+    <label>Your name</label><input id="f-author">
+    <button class="btn" style="margin-top:10px" onclick="saveFollowup()">Save to logbook</button><div id="f-msg"></div></div>`;
+  $("result").innerHTML = html;
+  $("result").scrollIntoView({behavior:"smooth"});
+}
+function saveFollowup(){
+  const opt=$("f-opt").value, match=$("f-match").value, txt=$("f-text").value.trim(), author=$("f-author").value.trim()||"Anonymous";
+  const chosen = lastAsk.answer && /^\d+$/.test(opt) ? lastAsk.answer.options[+opt-1].action : (opt==="none"?"nothing yet":"something else");
+  const text = `Problem: ${lastAsk.question} | Did: ${chosen}${txt?" | Result: "+txt:""} | Advice matched: ${match}`;
+  const k = addEntry({type:"member", bed:lastAsk.bed, text, author});
+  state.logs.unshift({...k, kind:"followup", match, question:lastAsk.question, answer:lastAsk.answer, prompt:lastAsk.user});
+  store(); $("f-msg").innerHTML=`<div class="ok-msg">Saved as ${k.id}. It shows as "needs checking" until an experienced farmer confirms it.</div>`;
+}
+
+/* =====================================================================
+   KNOWLEDGE + LOG
+   ===================================================================== */
+function addEntry({type,bed,text,author}){
+  const n = Math.max(0,...state.knowledge.map(k=>+k.id.slice(1)))+1;
+  const k = {id:"K"+n, type, bed, text, author, date:new Date().toISOString().slice(0,10),
+    status: (type==="member"||type==="general") ? "pending" : "validated"};
+  state.knowledge.push(k); store(); return k;
+}
+function addKnowledge(){
+  const text=$("kb-text").value.trim(); if(!text) return;
+  const k=addEntry({type:$("kb-type").value, bed:$("kb-bed").value, text, author:$("kb-author").value.trim()||"Anonymous"});
+  $("kb-text").value=""; $("kb-msg").innerHTML=`<div class="ok-msg">Saved as ${k.id}.</div>`; renderKB();
+}
+function setStatus(id,status){ const k=state.knowledge.find(k=>k.id===id); k.status=status; k.checkedOn=new Date().toISOString().slice(0,10); store(); renderKB(); }
+function renderKB(){
+  const f=$("kb-filter").value;
+  const list=[...state.knowledge].reverse().filter(k=>k.status!=="rejected" && (f==="all"||k.status===f));
+  $("kb-list").innerHTML = list.map(k=>`<div class="kb">
+    <div><span class="tag ${TYPE_TAG[k.type]}">${k.id} · ${TYPE_LABEL[k.type]}</span><span class="tag grey">${esc(k.bed)}</span>
+    ${k.status==="validated"?'<span class="tag">✓ confirmed</span>':'<span class="tag amber">needs checking</span>'}</div>
+    <div style="margin:6px 0">${esc(k.text)}</div><div class="muted">${esc(k.author)} · ${esc(k.date)}</div>
+    ${k.status==="pending"?`<div class="row" style="margin-top:6px"><button class="btn small" onclick="setStatus('${k.id}','validated')">Confirm (experienced farmer)</button><button class="btn small ghost" onclick="setStatus('${k.id}','rejected')">Not correct</button></div>`:""}
+  </div>`).join("") || '<p class="muted">Nothing here.</p>';
+}
+function quickLog(){
+  const text=$("log-text").value.trim(); if(!text) return;
+  const k=addEntry({type:"member", bed:$("log-bed").value, text, author:$("log-author").value.trim()||"Anonymous"});
+  state.logs.unshift({...k, kind:"quick"}); store();
+  $("log-text").value=""; $("log-msg").innerHTML=`<div class="ok-msg">Logged as ${k.id}. Thanks!</div>`; renderLogs();
+}
+function renderLogs(){
+  $("log-list").innerHTML = state.logs.slice(0,20).map(l=>`<div class="kb"><span class="tag grey">${esc(l.bed)}</span><span class="muted">${esc(l.date)} · ${esc(l.author)}</span><div>${esc(l.text)}</div></div>`).join("") || '<p class="muted">No logs yet.</p>';
+}
+
+/* =====================================================================
+   KIT VIEW
+   ===================================================================== */
+function renderKit(){
+  $("kit-cards").innerHTML = CONFIG.beds.map(b=>{ const s=bedStatus(b.name);
+    return `<div class="card"><div class="status"><div><h3>${esc(b.name)}</h3><div class="muted">${esc(s.text.replace(b.name+": ",""))}</div></div><span class="lvl ${s.level}">${s.label}</span></div>${sparkline(s.rows)}</div>`; }).join("");
+}
+function uploadKit(){
+  const f=$("kit-file").files[0]; if(!f){ return; }
+  const fr=new FileReader(); fr.onload=()=>{
+    try{ const {rows,skipped}=parseSensorCSV(fr.result, $("kit-bed").value);
+      state.sensor.push(...rows); store(); renderKit();
+      $("kit-msg").innerHTML=`<div class="ok-msg">Added ${rows.length} readings${skipped?` (${skipped} rows skipped)`:""}.</div>`; }
+    catch(e){ $("kit-msg").innerHTML=`<div class="notice" style="margin-top:8px">${esc(e.message)}</div>`; }
+  }; fr.readAsText(f);
+}
+
+/* =====================================================================
+   SETTINGS / DATA
+   ===================================================================== */
+function fillSettings(){ const s=state.settings; $("s-provider").value=s.provider; $("s-key").value=s.key; $("s-model").value=s.model;
+  $("s-model").placeholder = CONFIG.defaultModels[s.provider] || "(not needed)"; $("s-prompt").value=s.prompt; $("s-demo").checked=s.demo; }
+function saveSettings(){ Object.assign(state.settings,{provider:$("s-provider").value, key:$("s-key").value.trim(), model:$("s-model").value.trim(), prompt:$("s-prompt").value, demo:$("s-demo").checked});
+  store(); $("s-msg").textContent="Saved ✓"; setTimeout(()=>$("s-msg").textContent="",2000); refresh(); }
+function resetPrompt(){ $("s-prompt").value=DEFAULT_PROMPT; }
+function download(name, text, type){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click(); }
+function exportData(){ const copy={...state, settings:{...state.settings, key:""}}; download("rewild-data-"+new Date().toISOString().slice(0,10)+".json", JSON.stringify(copy,null,2), "application/json"); }
+function exportCSV(){ const q=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
+  download("rewild-knowledge.csv", ["id,type,bed,status,author,date,text", ...state.knowledge.map(k=>[k.id,k.type,k.bed,k.status,k.author,k.date,k.text].map(q).join(","))].join("\n"), "text/csv"); }
+function importData(input){ const f=input.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=()=>{ try{ const s=JSON.parse(fr.result); const key=state.settings.key;
+  state=s; state.settings.key=key; state.sensor.forEach(r=>r.t=new Date(r.t)); store(); fillSettings(); refresh(); $("s-msg").textContent="Imported ✓"; }catch(e){ alert("Not a valid backup file."); } }; fr.readAsText(f); }
+function resetAll(){ if(!confirm("Replace everything in this browser with the example data?")) return; const s=state.settings; state=freshState(); state.settings={...s, prompt:state.settings.prompt}; store(); fillSettings(); refresh(); }
+
+/* =====================================================================
+   UI plumbing
+   ===================================================================== */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function show(v){ ["ask","kit","kb","log","settings"].forEach(x=>$("v-"+x).classList.toggle("hidden",x!==v));
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+  if(v==="settings") fillSettings(); refresh(); window.scrollTo(0,0); }
+function refresh(){
+  const opts=CONFIG.beds.map(b=>`<option>${esc(b.name)}</option>`).join("");
+  ["q-bed","kit-bed","log-bed"].forEach(id=>{ const v=$(id).value; $(id).innerHTML=opts; if(v) $(id).value=v; });
+  const kv=$("kb-bed").value; $("kb-bed").innerHTML='<option>All</option>'+opts; if(kv) $("kb-bed").value=kv;
+  updateBedStatus(); renderKit(); renderKB(); renderLogs();
+  $("q-mode").textContent = (state.settings.provider==="manual"||!state.settings.key) ? "Manual AI mode (see Settings)" : "AI: "+(state.settings.model||CONFIG.defaultModels[state.settings.provider]);
+}
+function updateBedStatus(){ const s=bedStatus($("q-bed").value); $("q-bedstatus").innerHTML=`<span class="lvl ${s.level}" style="font-size:12px;padding:2px 8px;border-radius:99px">${s.label}</span> ${esc(s.text)}`; }
+$("s-provider").addEventListener("change",()=>{$("s-model").placeholder=CONFIG.defaultModels[$("s-provider").value]||"(not needed)";});
+
+load(); refresh();
+$("q-bed").addEventListener("change", updateBedStatus);
+</script>
+</body>
+</html>
