@@ -13,7 +13,8 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
 header{position:sticky;top:0;z-index:5;background:var(--green);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
-header h1{font-size:17px;margin:0;font-weight:650}
+header h1{font-size:17px;margin:0;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+header{gap:8px}
 header button{background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:8px;padding:4px 10px;font-size:13px}
 main{max-width:680px;margin:0 auto;padding:16px 16px 96px}
 nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;z-index:5}
@@ -44,12 +45,15 @@ pre{white-space:pre-wrap;font-size:12px;background:#f0ece3;padding:10px;border-r
 .ok-msg{background:var(--green-soft);color:var(--green);border-radius:8px;padding:8px 10px;font-size:13px;margin-top:8px}
 svg.spark{width:100%;height:40px;margin-top:6px}
 .kb{border-bottom:1px solid var(--line);padding:10px 0} .kb:last-child{border:0}
+.sync{font-size:12px;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.18);color:#fff;border:0;margin-right:8px;cursor:pointer}
+.sync.err{background:#f6dfda;color:#a63a2a}
+.err-msg{background:var(--red-soft);color:var(--red);border-radius:8px;padding:8px 10px;font-size:13px;margin-top:8px}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-right-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes s{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
-<header><h1>🌱 Rewild Farming Assistant</h1><button onclick="show('settings')">⚙ Settings</button></header>
+<header><h1>🌱 Rewild Farming Assistant</h1><div style="display:flex;align-items:center;flex-shrink:0"><button id="sync" class="sync hidden" onclick="pull(true)" title="Tap to refresh shared data"></button><button onclick="show('settings')" aria-label="Settings" title="Settings" style="font-size:16px;padding:2px 9px">⚙</button></div></header>
 <main>
 
 <!-- ============ ASK ============ -->
@@ -89,7 +93,7 @@ svg.spark{width:100%;height:40px;margin-top:6px}
     <p class="muted">CSV file. Needs a time column and at least one of: soil moisture, temperature, humidity, light. If the file has no "bed" column, choose where the probe was placed.</p>
     <label for="kit-bed">Probe was in</label><select id="kit-bed"></select>
     <label for="kit-file">CSV file</label><input id="kit-file" type="file" accept=".csv,text/csv">
-    <button class="btn" style="margin-top:10px" onclick="uploadKit()">Add readings</button>
+    <button class="btn" style="margin-top:10px" onclick="uploadKit(this)">Add readings</button>
     <div id="kit-msg"></div>
   </div>
 </section>
@@ -101,7 +105,7 @@ svg.spark{width:100%;height:40px;margin-top:6px}
     <h3>What grows where</h3>
     <p class="muted">Keep this up to date when something is planted or cleared. The AI uses it with every question.</p>
     <div id="plant-list"></div>
-    <button class="btn" style="margin-top:10px" onclick="savePlantings()">Save planting</button>
+    <button class="btn" style="margin-top:10px" onclick="savePlantings(this)">Save planting</button>
     <div id="plant-msg"></div>
   </div>
   <div class="card">
@@ -114,13 +118,13 @@ svg.spark{width:100%;height:40px;margin-top:6px}
       <div style="flex:1;min-width:140px"><label for="kb-bed">Applies to</label><select id="kb-bed"></select></div>
     </div>
     <label for="kb-author">Your name</label><input id="kb-author">
-    <button class="btn" style="margin-top:10px" onclick="addKnowledge()">Save</button>
+    <button class="btn" style="margin-top:10px" onclick="addKnowledge(this)">Save</button>
     <div id="kb-msg"></div>
   </div>
   <div class="card">
     <div class="row" style="justify-content:space-between"><h3 style="margin:0">Knowledge base</h3>
       <select id="kb-filter" style="width:auto" onchange="renderKB()"><option value="all">All</option><option value="pending">Needs checking</option><option value="validated">Confirmed</option></select></div>
-    <div id="kb-list"></div>
+    <div id="kb-list-msg"></div><div id="kb-list"></div>
   </div>
 </section>
 
@@ -132,7 +136,7 @@ svg.spark{width:100%;height:40px;margin-top:6px}
     <label for="log-bed">Where?</label><select id="log-bed"></select>
     <label for="log-text">What did you see or do?</label><textarea id="log-text" placeholder="e.g. Mulched bed 3 with straw, soil was bone dry 5 cm down"></textarea>
     <label for="log-author">Your name</label><input id="log-author">
-    <button class="btn" style="margin-top:10px" onclick="quickLog()">Log it</button>
+    <button class="btn" style="margin-top:10px" onclick="quickLog(this)">Log it</button>
     <div id="log-msg"></div>
   </div>
   <div class="card"><h3>Recent logs</h3><div id="log-list"></div></div>
@@ -164,11 +168,11 @@ svg.spark{width:100%;height:40px;margin-top:6px}
   </div>
   <div class="card">
     <h3>Data</h3>
-    <p class="muted">Everything is stored in this browser. Download a backup to move it to another device or share it with your group.</p>
+    <p class="muted" id="data-note"></p>
     <div class="row"><button class="btn small" onclick="exportData()">Download backup</button>
-      <label class="btn small ghost" style="margin:0;color:var(--green)">Import backup<input type="file" accept=".json" class="hidden" onchange="importData(this)"></label>
+      <label class="btn small ghost local-only" style="margin:0;color:var(--green)">Import backup<input type="file" accept=".json" class="hidden" onchange="importData(this)"></label>
       <button class="btn small ghost" onclick="exportCSV()">Knowledge as CSV</button>
-      <button class="btn small ghost" style="color:var(--red);border-color:var(--red)" onclick="resetAll()">Reset to example data</button></div>
+      <button class="btn small ghost local-only" style="color:var(--red);border-color:var(--red)" onclick="resetAll()">Reset to example data</button></div>
   </div>
   <button class="btn" onclick="saveSettings()">Save settings</button> <span id="s-msg" class="muted"></span>
 </section>
@@ -186,6 +190,9 @@ svg.spark{width:100%;height:40px;margin-top:6px}
    CONFIG: the parts your group edits.
    ===================================================================== */
 const CONFIG = {
+  // Shared data: paste your Google Apps Script web app URL here (ends in /exec).
+  // Leave empty ("") and everything is stored only in this browser.
+  sheetUrl: "https://script.google.com/macros/s/AKfycbz_xGaC5uArHGLkrt5YMCTuzBvOuIK_ZGq381mMawTJk0OkNwI4zQ1idYXmeNJEp65R/exec",
   // Replace with Rewild's real layout. "type" is passed to the AI as context.
   // What grows in each bed is edited in the app itself (Knowledge tab → What grows where).
   beds: [
@@ -202,6 +209,7 @@ const CONFIG = {
   maxKnowledgeInPrompt: 40,
   defaultModels: {anthropic:"claude-sonnet-5-5", openai:"gpt-4o-mini"}
 };
+const SHARED = !!CONFIG.sheetUrl.trim();
 
 const DEFAULT_PROMPT = `You are the Rewild Farming assistant. You help volunteers of Rewild Farming, a community-run regenerative farm and rewilding project on unused land in Eindhoven (NL). Most volunteers have little farming experience. Your job is to help them understand what is happening and decide what to do, not to decide for them.
 
@@ -304,7 +312,7 @@ const TYPE_TAG = {farmer:"", member:"blue", rule:"red", general:"grey"};
 
 function store(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 function freshState(){
-  return {knowledge: SEED_KNOWLEDGE.map(k=>({...k})), sensor: parseSensorCSV(SAMPLE_CSV, null).rows, logs: [],
+  return {knowledge: SHARED ? [] : SEED_KNOWLEDGE.map(k=>({...k})), sensor: SHARED ? [] : parseSensorCSV(SAMPLE_CSV, null).rows, logs: [],
     plantings: {},
     settings: {provider:"manual", key:"", model:"", prompt: DEFAULT_PROMPT, promptV: PROMPT_VERSION, promptCustom:false, demo:true}};
 }
@@ -324,6 +332,68 @@ function aiReady(){
   return (s.provider==="anthropic"||s.provider==="openai") && !!s.key;
 }
 function plantsIn(bed){ const p=(state.plantings[bed]||{}).plants; return p && p.trim() ? p.trim() : ""; }
+function today(){ return new Date().toISOString().slice(0,10); }
+
+/* =====================================================================
+   SHARED DATA (Google Sheet). Only used when CONFIG.sheetUrl is filled in.
+   Everything is also cached in this browser, so the page still opens offline.
+   ===================================================================== */
+let lastPull = 0, pulling = null;
+function setSync(mode, msg){
+  if(!SHARED) return; const el=$("sync"); el.classList.remove("hidden");
+  el.classList.toggle("err", mode==="error");
+  el.textContent = {loading:"⟳ Loading…", saving:"⟳ Saving…", ok:"● Shared", error:"⚠ Not synced"}[mode];
+  el.title = msg || "Shared with your group through Google Sheets. Tap to refresh.";
+}
+async function sheetGet(){
+  const r = await fetch(CONFIG.sheetUrl.trim(), {cache:"no-store"});
+  const j = await r.json(); if(!j.ok) throw new Error(j.error || "sheet error"); return j;
+}
+async function sheetPost(action, data){
+  setSync("saving");
+  try{
+    // text/plain keeps the browser from blocking the request to Google (no CORS preflight)
+    const r = await fetch(CONFIG.sheetUrl.trim(), {method:"POST", headers:{"content-type":"text/plain;charset=utf-8"}, body:JSON.stringify({action, ...data})});
+    const j = await r.json(); if(!j.ok) throw new Error(j.error || "save failed");
+    setSync("ok"); return j;
+  }catch(e){ setSync("error", "Last save failed: "+e.message); throw e; }
+}
+const sensorRow = r => ({t:r.t.toISOString(), bed:r.bed, soil:r.soil ?? "", temp:r.temp ?? "", hum:r.hum ?? "", light:r.light ?? ""});
+function applyRemote(j){
+  const num = v => { const x=parseFloat(String(v).replace(",",".")); return isNaN(x) ? null : x; };
+  state.knowledge = j.knowledge.map(k=>({...k, type:(k.type||"member").toLowerCase().trim(), status:(k.status||"pending").toLowerCase().trim(), bed:k.bed||"All"}));
+  state.logs = j.logs.slice().reverse();
+  state.plantings = {}; j.plantings.forEach(p=>{ state.plantings[p.bed] = {plants:p.plants, updated:p.updated}; });
+  CONFIG.beds.forEach(b=>{ if(!state.plantings[b.name]) state.plantings[b.name] = {plants:"", updated:""}; });
+  state.sensor = j.sensor.map(r=>({t:new Date(r.t), bed:r.bed, soil:num(r.soil), temp:num(r.temp), hum:num(r.hum), light:num(r.light)})).filter(r=>!isNaN(r.t));
+  store();
+}
+async function pull(force){
+  if(!SHARED) return;
+  if(pulling) return pulling;
+  if(!force && Date.now()-lastPull < 20000) return;
+  setSync("loading");
+  pulling = (async()=>{
+    try{ applyRemote(await sheetGet()); lastPull = Date.now(); setSync("ok"); refresh(); }
+    catch(e){ setSync("error", "Couldn't reach the shared sheet ("+e.message+"). Showing the last copy saved on this device."); }
+    finally{ pulling = null; }
+  })();
+  return pulling;
+}
+async function seedSheet(btn){
+  await busy(btn, async()=>{
+    const j = await sheetPost("seed", {knowledge: SEED_KNOWLEDGE, sensor: parseSensorCSV(SAMPLE_CSV, null).rows.map(sensorRow)});
+    await pull(true);
+    $("s-msg").textContent = j.added ? `Added ${j.added} example rows ✓` : "The sheet already has data, nothing added.";
+  }, "s-msg");
+}
+// Runs a save, disables the button meanwhile, and shows an error if it fails.
+async function busy(btn, fn, msgId){
+  if(btn) btn.disabled = true;
+  try{ await fn(); }
+  catch(e){ $(msgId).innerHTML = `<div class="err-msg">Not saved: ${esc(e.message)}. Check the connection and try again.</div>`; }
+  finally{ if(btn) btn.disabled = false; }
+}
 
 /* =====================================================================
    SENSOR: parse CSV + rule-based summary (no AI here)
@@ -404,7 +474,7 @@ function relevantKnowledge(bed, question){
 function buildUserMessage(bed, question, hasPhoto){
   const sensorLines = CONFIG.beds.map(b=>"- "+bedStatus(b.name).text).join("\n");
   const kn = relevantKnowledge(bed, question).map(k=>
-    `[${k.id}] ${TYPE_LABEL[k.type]} | ${k.status==="validated"?"confirmed":"NOT YET CONFIRMED"} | applies to: ${k.bed} | ${k.text}`).join("\n");
+    `[${k.id}] ${(TYPE_LABEL[k.type]||k.type)} | ${k.status==="validated"?"confirmed":"NOT YET CONFIRMED"} | applies to: ${k.bed} | ${k.text}`).join("\n");
   const register = CONFIG.beds.map(b=>{ const p=state.plantings[b.name]||{};
     return `- ${b.name}: ${plantsIn(b.name) || "not recorded"}${p.updated && plantsIn(b.name) ? " (updated "+p.updated+")" : ""}`; }).join("\n");
   return `LOCATION: ${bed} (${bedType(bed)})
@@ -516,7 +586,7 @@ function sourceTag(id){
   if(id==="GENERAL") return `<button class="tag grey" onclick="toggleSrc(this,'GENERAL')">🌍 General knowledge</button>`;
   const k=state.knowledge.find(k=>k.id===id);
   if(!k) return `<span class="tag red" title="This id does not exist in the knowledge base">⚠ ${esc(id)} (unknown)</span>`;
-  return `<button class="tag ${TYPE_TAG[k.type]}" onclick="toggleSrc(this,'${k.id}')">${k.id} · ${TYPE_LABEL[k.type]}${k.status!=="validated"?" (unconfirmed)":""}</button>`;
+  return `<button class="tag ${TYPE_TAG[k.type]}" onclick="toggleSrc(this,'${k.id}')">${k.id} · ${(TYPE_LABEL[k.type]||k.type)}${k.status!=="validated"?" (unconfirmed)":""}</button>`;
 }
 function toggleSrc(el,id){
   const box=el.parentElement.nextElementSibling;
@@ -559,7 +629,7 @@ function showResult(raw){
     <select id="f-match"><option>Yes</option><option>Partly</option><option>No</option></select>
     <label>What did you see? (short)</label><textarea id="f-text" placeholder="e.g. Mulched it, soil still moist 2 days later"></textarea>
     <label>Your name</label><input id="f-author">
-    <button class="btn" style="margin-top:10px" onclick="saveFollowup()">Save to logbook</button><div id="f-msg"></div></div>`;
+    <button class="btn" style="margin-top:10px" onclick="saveFollowup(this)">Save to logbook</button><div id="f-msg"></div></div>`;
   $("result").innerHTML = html;
   $("result").scrollIntoView({behavior:"smooth"});
 }
@@ -568,7 +638,7 @@ function followupFields(){
   $("f-which-wrap").classList.toggle("hidden", did!=="followed" || !hasOpts);
   $("f-other-wrap").classList.toggle("hidden", did!=="other");
 }
-function saveFollowup(){
+function saveFollowup(btn){
   const did=$("f-did").value, match=$("f-match").value, txt=$("f-text").value.trim(), author=$("f-author").value.trim()||"Anonymous";
   let chosen;
   if(did==="followed"){ const o = lastAsk.answer && lastAsk.answer.options[+$("f-opt").value];
@@ -576,34 +646,46 @@ function saveFollowup(){
   else if(did==="other"){ chosen = "something else" + ($("f-other").value.trim() ? `: ${$("f-other").value.trim()}` : ""); }
   else chosen = "nothing yet";
   const text = `Problem: ${lastAsk.question} | Did: ${chosen}${txt?" | Result: "+txt:""} | Advice matched: ${match}`;
-  const k = addEntry({type:"member", bed:lastAsk.bed, text, author});
-  state.logs.unshift({...k, kind:"followup", match, question:lastAsk.question, answer:lastAsk.answer, prompt:lastAsk.user});
-  store(); $("f-msg").innerHTML=`<div class="ok-msg">Saved as ${k.id}. It shows as "needs checking" until an experienced farmer confirms it.</div>`;
+  busy(btn, async()=>{
+    const k = await addEntry({type:"member", bed:lastAsk.bed, text, author}, {kind:"followup", match, question:lastAsk.question});
+    $("f-msg").innerHTML=`<div class="ok-msg">Saved as ${k.id}. It shows as "needs checking" until an experienced farmer confirms it.</div>`;
+  }, "f-msg");
 }
 
 /* =====================================================================
    KNOWLEDGE + LOG
    ===================================================================== */
-function addEntry({type,bed,text,author}){
-  const n = Math.max(0,...state.knowledge.map(k=>+k.id.slice(1)))+1;
-  const k = {id:"K"+n, type, bed, text, author, date:new Date().toISOString().slice(0,10),
-    status: (type==="member"||type==="general") ? "pending" : "validated"};
-  state.knowledge.push(k); store(); return k;
+// Saves a knowledge entry (and a log row when `log` is given). In shared mode the sheet hands out the id.
+async function addEntry({type,bed,text,author}, log){
+  const entry = {type, bed, text, author, date:today(), status: (type==="member"||type==="general") ? "pending" : "validated"};
+  let k;
+  if(SHARED){ k = (await sheetPost("add", {entry, log: log || null})).entry; }
+  else { const n = Math.max(0, ...state.knowledge.map(k=>parseInt(String(k.id).slice(1))||0)) + 1; k = {id:"K"+n, ...entry}; }
+  state.knowledge.push(k);
+  if(log) state.logs.unshift({...k, ...log});
+  store(); return k;
 }
-function addKnowledge(){
+function addKnowledge(btn){
   const text=$("kb-text").value.trim(); if(!text) return;
-  const k=addEntry({type:$("kb-type").value, bed:$("kb-bed").value, text, author:$("kb-author").value.trim()||"Anonymous"});
-  $("kb-text").value=""; $("kb-msg").innerHTML=`<div class="ok-msg">Saved as ${k.id}.</div>`; renderKB();
+  busy(btn, async()=>{
+    const k = await addEntry({type:$("kb-type").value, bed:$("kb-bed").value, text, author:$("kb-author").value.trim()||"Anonymous"});
+    $("kb-text").value=""; $("kb-msg").innerHTML=`<div class="ok-msg">Saved as ${k.id}.</div>`; renderKB();
+  }, "kb-msg");
 }
-function setStatus(id,status){ const k=state.knowledge.find(k=>k.id===id); k.status=status; k.checkedOn=new Date().toISOString().slice(0,10); store(); renderKB(); }
+function setStatus(btn, id, status){
+  busy(btn, async()=>{
+    if(SHARED) await sheetPost("status", {id, status, checkedOn:today()});
+    const k=state.knowledge.find(k=>k.id===id); k.status=status; k.checkedOn=today(); store(); renderKB();
+  }, "kb-list-msg");
+}
 function renderKB(){
   const f=$("kb-filter").value;
   const list=[...state.knowledge].reverse().filter(k=>k.status!=="rejected" && (f==="all"||k.status===f));
   $("kb-list").innerHTML = list.map(k=>`<div class="kb">
-    <div><span class="tag ${TYPE_TAG[k.type]}">${k.id} · ${TYPE_LABEL[k.type]}</span><span class="tag grey">${esc(k.bed)}</span>
+    <div><span class="tag ${TYPE_TAG[k.type]}">${k.id} · ${(TYPE_LABEL[k.type]||k.type)}</span><span class="tag grey">${esc(k.bed)}</span>
     ${k.status==="validated"?'<span class="tag">✓ confirmed</span>':'<span class="tag amber">needs checking</span>'}</div>
     <div style="margin:6px 0">${esc(k.text)}</div><div class="muted">${esc(k.author)} · ${esc(k.date)}</div>
-    ${k.status==="pending"?`<div class="row" style="margin-top:6px"><button class="btn small" onclick="setStatus('${k.id}','validated')">Confirm (experienced farmer)</button><button class="btn small ghost" onclick="setStatus('${k.id}','rejected')">Not correct</button></div>`:""}
+    ${k.status==="pending"?`<div class="row" style="margin-top:6px"><button class="btn small" onclick="setStatus(this,'${k.id}','validated')">Confirm (experienced farmer)</button><button class="btn small ghost" onclick="setStatus(this,'${k.id}','rejected')">Not correct</button></div>`:""}
   </div>`).join("") || '<p class="muted">Nothing here.</p>';
 }
 function renderPlantings(){
@@ -611,18 +693,22 @@ function renderPlantings(){
     return `<label for="plant-${i}">${esc(b.name)}${p.updated?` <span class="muted">· updated ${esc(p.updated)}</span>`:""}</label>
       <input id="plant-${i}" value="${esc(p.plants||"")}" placeholder="${b.name.toLowerCase().includes("rewild")?"e.g. native wildflowers, grasses":"e.g. kale, chard, leeks"}">`; }).join("");
 }
-function savePlantings(){
-  const today=new Date().toISOString().slice(0,10); let changed=0;
-  CONFIG.beds.forEach((b,i)=>{ const v=$("plant-"+i).value.trim(), p=state.plantings[b.name];
-    if(v!==(p.plants||"")){ state.plantings[b.name]={plants:v, updated:today}; changed++; } });
-  store(); renderPlantings(); updateBedStatus();
-  $("plant-msg").innerHTML=`<div class="ok-msg">${changed?`Saved (${changed} bed${changed==1?"":"s"} changed).`:"Nothing changed."}</div>`;
+function savePlantings(btn){
+  const rows = CONFIG.beds.map((b,i)=>({bed:b.name, plants:$("plant-"+i).value.trim(), updated:today()}))
+    .filter(r=>r.plants !== ((state.plantings[r.bed]||{}).plants||""));
+  busy(btn, async()=>{
+    if(SHARED && rows.length) await sheetPost("plantings", {rows});
+    rows.forEach(r=>{ state.plantings[r.bed] = {plants:r.plants, updated:r.updated}; });
+    store(); renderPlantings(); updateBedStatus();
+    $("plant-msg").innerHTML=`<div class="ok-msg">${rows.length?`Saved (${rows.length} bed${rows.length==1?"":"s"} changed).`:"Nothing changed."}</div>`;
+  }, "plant-msg");
 }
-function quickLog(){
+function quickLog(btn){
   const text=$("log-text").value.trim(); if(!text) return;
-  const k=addEntry({type:"member", bed:$("log-bed").value, text, author:$("log-author").value.trim()||"Anonymous"});
-  state.logs.unshift({...k, kind:"quick"}); store();
-  $("log-text").value=""; $("log-msg").innerHTML=`<div class="ok-msg">Logged as ${k.id}. Thanks!</div>`; renderLogs();
+  busy(btn, async()=>{
+    const k = await addEntry({type:"member", bed:$("log-bed").value, text, author:$("log-author").value.trim()||"Anonymous"}, {kind:"quick"});
+    $("log-text").value=""; $("log-msg").innerHTML=`<div class="ok-msg">Logged as ${k.id}. Thanks!</div>`; renderLogs();
+  }, "log-msg");
 }
 function renderLogs(){
   $("log-list").innerHTML = state.logs.slice(0,20).map(l=>`<div class="kb"><span class="tag grey">${esc(l.bed)}</span><span class="muted">${esc(l.date)} · ${esc(l.author)}</span><div>${esc(l.text)}</div></div>`).join("") || '<p class="muted">No logs yet.</p>';
@@ -635,14 +721,17 @@ function renderKit(){
   $("kit-cards").innerHTML = CONFIG.beds.map(b=>{ const s=bedStatus(b.name);
     return `<div class="card"><div class="status"><div><h3>${esc(b.name)}</h3><div class="muted">${esc(s.text.replace(b.name+": ",""))}</div></div><span class="lvl ${s.level}">${s.label}</span></div>${sparkline(s.rows)}</div>`; }).join("");
 }
-function uploadKit(){
+function uploadKit(btn){
   const f=$("kit-file").files[0]; if(!f){ return; }
-  const fr=new FileReader(); fr.onload=()=>{
-    try{ const {rows,skipped}=parseSensorCSV(fr.result, $("kit-bed").value);
-      state.sensor.push(...rows); store(); renderKit();
-      $("kit-msg").innerHTML=`<div class="ok-msg">Added ${rows.length} readings${skipped?` (${skipped} rows skipped)`:""}.</div>`; }
-    catch(e){ $("kit-msg").innerHTML=`<div class="notice" style="margin-top:8px">${esc(e.message)}</div>`; }
-  }; fr.readAsText(f);
+  busy(btn, async()=>{
+    let parsed;
+    try{ parsed = parseSensorCSV(await f.text(), $("kit-bed").value); }
+    catch(e){ $("kit-msg").innerHTML=`<div class="notice" style="margin-top:8px">${esc(e.message)}</div>`; return; }
+    const {rows, skipped} = parsed;
+    if(SHARED && rows.length) await sheetPost("sensor", {rows: rows.map(sensorRow)});
+    state.sensor.push(...rows); store(); renderKit();
+    $("kit-msg").innerHTML=`<div class="ok-msg">Added ${rows.length} readings${skipped?` (${skipped} rows skipped)`:""}.</div>`;
+  }, "kit-msg");
 }
 
 /* =====================================================================
@@ -656,6 +745,12 @@ function fillSettings(){ const s=state.settings; $("s-provider").value=s.provide
 function saveSettings(){ Object.assign(state.settings,{provider:$("s-provider").value, key:$("s-key").value.trim(), model:$("s-model").value.trim(),
   prompt:$("s-prompt").value, promptCustom:$("s-prompt").value!==DEFAULT_PROMPT, promptV:PROMPT_VERSION, demo:$("s-demo").checked});
   store(); $("s-msg").textContent="Saved ✓"; setTimeout(()=>$("s-msg").textContent="",2000); refresh(); }
+function initDataCard(){
+  document.querySelectorAll(".local-only").forEach(el=>el.classList.toggle("hidden", SHARED));
+  $("data-note").innerHTML = SHARED
+    ? `Knowledge, logs, planting and kit data are shared with your group through a Google Sheet. To edit or delete something, change it in the sheet; the app picks it up when you tap ● Shared. Settings and the API key stay on this device. <br><button class="btn small ghost" style="margin-top:8px" onclick="seedSheet(this)">Add example data to an empty sheet</button>`
+    : "Everything is stored in this browser. Download a backup to move it to another device or share it with your group.";
+}
 function resetPrompt(){ $("s-prompt").value=DEFAULT_PROMPT; }
 function download(name, text, type){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click(); }
 function exportData(){ const copy={...state, settings:{...state.settings, key:""}}; download("rewild-data-"+new Date().toISOString().slice(0,10)+".json", JSON.stringify(copy,null,2), "application/json"); }
@@ -672,7 +767,7 @@ function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function show(v){ ["ask","kit","kb","log","settings"].forEach(x=>$("v-"+x).classList.toggle("hidden",x!==v));
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
-  if(v==="settings") fillSettings(); refresh(); window.scrollTo(0,0); }
+  if(v==="settings") fillSettings(); refresh(); window.scrollTo(0,0); pull(); }
 function refresh(){
   const opts=CONFIG.beds.map(b=>`<option>${esc(b.name)}</option>`).join("");
   ["q-bed","kit-bed","log-bed"].forEach(id=>{ const v=$(id).value; $(id).innerHTML=opts; if(v) $(id).value=v; });
@@ -687,8 +782,9 @@ function updateBedStatus(){ const bed=$("q-bed").value, s=bedStatus(bed), p=plan
     + `<div style="margin-top:6px">🌿 ${p ? "Growing here: "+esc(p) : '<span class="muted">What grows here isn\'t filled in yet (Knowledge tab → What grows where).</span>'}</div>`; }
 $("s-provider").addEventListener("change", providerFields);
 
-load(); refresh();
+load(); initDataCard(); refresh(); pull(true);
 $("q-bed").addEventListener("change", updateBedStatus);
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") pull(); });
 </script>
 </body>
 </html>
