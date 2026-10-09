@@ -6,24 +6,28 @@
 <title>Rewild Farming Assistant</title>
 <style>
 :root{
-  --bg:#f4f1ea; --card:#fffdf8; --ink:#1f2a1f; --muted:#5d6b5a; --line:#ddd6c8;
+  --bg:#f8f6f1; --card:rgba(255,255,255,.92); --ink:#1f2a1f; --muted:#5d6b5a; --line:#e4e0d6;
   --green:#2f6b3a; --green-soft:#e2eedf; --amber:#a86a12; --amber-soft:#f7ead3;
   --red:#a63a2a; --red-soft:#f6dfda; --blue:#2c5a7a; --blue-soft:#dde9f1;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+/* logo as a faint watermark behind the content */
+body::before{content:"";position:fixed;inset:0;background:url("rewildlogo.png") center 55% / min(70vw,440px) auto no-repeat;opacity:.07;pointer-events:none;z-index:0}
 header{position:sticky;top:0;z-index:5;background:var(--green);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
-header h1{font-size:17px;margin:0;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+header h1{font-size:17px;margin:0;font-weight:650;display:flex;align-items:center;gap:10px;min-width:0}
+header h1 span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logo{height:34px;width:auto;max-width:110px;object-fit:contain;background:#fff;border-radius:8px;padding:3px 5px;flex-shrink:0}
 header{gap:8px}
 header button{background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:8px;padding:4px 10px;font-size:13px}
-main{max-width:680px;margin:0 auto;padding:16px 16px 96px}
-nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;z-index:5}
+main{position:relative;z-index:1;max-width:680px;margin:0 auto;padding:16px 16px 96px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:5}
 nav button{flex:1;border:0;background:none;padding:10px 4px 12px;font-size:13px;color:var(--muted)}
 nav button.on{color:var(--green);font-weight:650;box-shadow:inset 0 3px 0 var(--green)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
 h2{font-size:18px;margin:4px 0 12px} h3{font-size:15px;margin:0 0 6px}
 label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
-input,select,textarea{width:100%;font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+input,select,textarea{width:100%;font:inherit;padding:9px 10px;border:1px solid #d9d4c8;border-radius:8px;background:#fff;color:var(--ink)}
 textarea{min-height:80px;resize:vertical}
 .btn{display:inline-block;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;background:var(--green);color:#fff;cursor:pointer}
 .btn.ghost{background:transparent;color:var(--green);border:1px solid var(--green)}
@@ -36,7 +40,14 @@ textarea{min-height:80px;resize:vertical}
 .status{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .status .lvl{font-weight:700;font-size:13px;padding:3px 9px;border-radius:99px;white-space:nowrap}
 .lvl.dry{background:var(--amber-soft);color:var(--amber)} .lvl.ok{background:var(--green-soft);color:var(--green)} .lvl.wet{background:var(--blue-soft);color:var(--blue)} .lvl.none{background:#ece8df;color:var(--muted)}
-.option{border-left:4px solid var(--green)} .option.general{border-left-color:var(--amber)}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.info-btn{flex-shrink:0;width:28px;height:28px;border-radius:50%;border:1px solid #cfc9bc;background:#fff;color:var(--muted);font:600 14px/1 Georgia,serif;font-style:italic;cursor:pointer}
+.info-btn[aria-expanded="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.info{margin-top:10px;padding:10px 12px;background:#f3f1ec;border-radius:8px;font-size:13px}
+.info p{margin:0 0 6px} .info ul{margin:4px 0 0;padding-left:18px} .info li{margin:4px 0}
+.wx{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.wx-day{flex:1 0 62px;text-align:center;border:1px solid var(--line);border-radius:10px;padding:6px 4px;background:#fff;font-size:12px}
+.wx-day b{display:block;font-size:12px} .wx-ico{font-size:20px;line-height:1.4} .wx-rain{color:var(--blue)}
 .srcbox{margin-top:6px;padding:8px 10px;background:var(--bg);border-radius:8px;font-size:13px}
 details summary{cursor:pointer;color:var(--muted);font-size:13px}
 pre{white-space:pre-wrap;font-size:12px;background:#f0ece3;padding:10px;border-radius:8px;max-height:320px;overflow:auto}
@@ -45,7 +56,7 @@ pre{white-space:pre-wrap;font-size:12px;background:#f0ece3;padding:10px;border-r
 .ok-msg{background:var(--green-soft);color:var(--green);border-radius:8px;padding:8px 10px;font-size:13px;margin-top:8px}
 svg.spark{width:100%;height:40px;margin-top:6px}
 .kb{border-bottom:1px solid var(--line);padding:10px 0} .kb:last-child{border:0}
-.sync{font-size:12px;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.18);color:#fff;border:0;margin-right:8px;cursor:pointer}
+.sync{white-space:nowrap;font-size:12px;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.18);color:#fff;border:0;margin-right:8px;cursor:pointer}
 .sync.err{background:#f6dfda;color:#a63a2a}
 .err-msg{background:var(--red-soft);color:var(--red);border-radius:8px;padding:8px 10px;font-size:13px;margin-top:8px}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-right-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:-2px;margin-right:6px}
@@ -53,11 +64,12 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 </style>
 </head>
 <body>
-<header><h1>🌱 Rewild Farming Assistant</h1><div style="display:flex;align-items:center;flex-shrink:0"><button id="sync" class="sync hidden" onclick="pull(true)" title="Tap to refresh shared data"></button><button onclick="show('settings')" aria-label="Settings" title="Settings" style="font-size:16px;padding:2px 9px">⚙</button></div></header>
+<header><h1><img class="logo" src="rewildlogo.png" alt="Rewild Farming logo" onerror="this.outerHTML='🌱'"><span>Rewild Farming Assistant</span></h1><div style="display:flex;align-items:center;flex-shrink:0"><button id="sync" class="sync hidden" onclick="pull(true)" title="Tap to refresh shared data"></button><button onclick="show('settings')" aria-label="Settings" title="Settings" style="font-size:16px;padding:2px 9px">⚙</button></div></header>
 <main>
 
 <!-- ============ ASK ============ -->
 <section id="v-ask">
+  <div class="card"><h3>Weather next 7 days</h3><div class="wx-box"></div></div>
   <div class="card">
     <h2>What do you see in the garden?</h2>
     <label for="q-bed">Where?</label>
@@ -87,6 +99,7 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 <!-- ============ KIT DATA ============ -->
 <section id="v-kit" class="hidden">
   <h2>Kit data</h2>
+  <div class="card"><h3>Weather next 7 days</h3><div class="wx-box"></div></div>
   <div id="kit-cards"></div>
   <div class="card">
     <h3>Upload readings from the Smart Citizen Kit</h3>
@@ -202,6 +215,8 @@ const CONFIG = {
     {name:"Bed 4", type:"vegetable raised bed"},
     {name:"Rewilding zone", type:"rewilding area with native species, low intervention: no watering, no fertiliser, no weeding except invasive species"}
   ],
+  // Location for the weather forecast (Open-Meteo, free, no key needed).
+  location: {name:"Eindhoven", lat:51.44, lon:5.48},
   // Soil moisture thresholds (%) for the status cards. Tune with an experienced farmer.
   soilDry: 25, soilWet: 60,
   trendDelta: 5,        // change in daily mean (%-points) that counts as rising/falling
@@ -215,15 +230,16 @@ const DEFAULT_PROMPT = `You are the Rewild Farming assistant. You help volunteer
 
 RULES
 1. Give 2 or 3 possible actions, not one instruction. The volunteer chooses.
-2. Every option cites its sources by id: knowledge ids like K3, SENSOR for the sensor summary, GENERAL for your own general knowledge.
+2. Every option cites its sources by id: knowledge ids like K3, SENSOR for the sensor summary, WEATHER for the forecast, GENERAL for your own general knowledge.
 3. Prefer local knowledge (experienced farmers, Rewild practice rules, confirmed observations) over general knowledge. Set "basis" to "general" when an option relies only on GENERAL: it has not been tested on this plot.
 4. Unconfirmed member observations are hints, not facts. Say so when you use one.
 5. Rewild practice rules always win over general gardening advice. In the rewilding zone never suggest watering, fertilising or tidying; suggest observing or passive measures instead.
 6. The sensor is one probe that measures in windows. Take the age of readings into account. If readings are old or missing for this spot, tell the volunteer to check the soil by hand.
 7. Plain language, short sentences, no jargon (explain any term you must use). The "why" explains the ecological reason in 1 or 2 sentences so the volunteer learns something.
 8. Use the planting register (WHAT GROWS WHERE) to know which plants are in the spot. If it says "not recorded" and the question doesn't say either, mention in "uncertainty" that you don't know what grows there.
-9. If you can't tell what is going on, say so in "uncertainty" and say what to look at or who to ask.
-10. Never invent knowledge entries, ids or sensor values.
+9. Take the weather forecast into account: if rain is expected in the coming days, watering is often not needed; warn about frost (below 0°C) for tender plants; don't plan work during heavy rain.
+10. If you can't tell what is going on, say so in "uncertainty" and say what to look at or who to ask.
+11. Never invent knowledge entries, ids, sensor values or weather.
 
 LENGTH
 Keep it short, the volunteer reads this on a phone in the garden: summary max 2 sentences, each action max 25 words, each why max 2 sentences, uncertainty max 2 sentences.
@@ -238,7 +254,7 @@ Reply with JSON only. No text before or after it, no code fences. Exactly this f
   "uncertainty": "what you are unsure about and what to check",
   "confidence": "low, medium or high"
 }`;
-const PROMPT_VERSION = 2;  // raise this when you change DEFAULT_PROMPT, so saved copies get updated
+const PROMPT_VERSION = 3;  // raise this when you change DEFAULT_PROMPT, so saved copies get updated
 
 /* Example knowledge entries so the prototype isn't empty.
    These are EXAMPLES written by the design team: replace them with real
@@ -333,6 +349,61 @@ function aiReady(){
 }
 function plantsIn(bed){ const p=(state.plantings[bed]||{}).plants; return p && p.trim() ? p.trim() : ""; }
 function today(){ return new Date().toISOString().slice(0,10); }
+
+/* =====================================================================
+   WEATHER FORECAST (Open-Meteo). Cached for an hour in this browser.
+   ===================================================================== */
+const WX_KEY = "rewild-weather";
+let weather = null, weatherLoading = null;
+function wxInfo(code){
+  if(code===0) return ["☀️","clear"];
+  if(code<=2) return ["🌤️","partly cloudy"];
+  if(code===3) return ["☁️","cloudy"];
+  if(code===45||code===48) return ["🌫️","fog"];
+  if(code>=51&&code<=57) return ["🌦️","drizzle"];
+  if(code>=61&&code<=67) return ["🌧️","rain"];
+  if(code>=71&&code<=77) return ["🌨️","snow"];
+  if(code>=80&&code<=82) return ["🌦️","showers"];
+  if(code===85||code===86) return ["🌨️","snow showers"];
+  if(code>=95) return ["⛈️","thunderstorm"];
+  return ["🌡️","unknown"];
+}
+function loadWeather(force){
+  if(weatherLoading) return weatherLoading;
+  let cached=null; try{ cached = JSON.parse(localStorage.getItem(WX_KEY)); }catch(e){}
+  if(cached && cached.days) weather = cached;
+  if(!force && cached && Date.now()-cached.fetchedAt < 36e5){ renderWeather(); return Promise.resolve(); }
+  const L = CONFIG.location;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${L.lat}&longitude=${L.lon}`
+    + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max&timezone=Europe%2FAmsterdam&forecast_days=7`;
+  weatherLoading = (async()=>{
+    try{
+      const r = await fetch(url); if(!r.ok) throw new Error(r.status);
+      const d = (await r.json()).daily;
+      weather = {fetchedAt: Date.now(), days: d.time.map((t,i)=>({date:t, code:d.weather_code[i], tmax:d.temperature_2m_max[i], tmin:d.temperature_2m_min[i],
+        rain:d.precipitation_sum[i], prob:d.precipitation_probability_max[i]}))};
+      try{ localStorage.setItem(WX_KEY, JSON.stringify(weather)); }catch(e){}
+    }catch(e){ /* keep the older copy if there is one */ }
+    finally{ weatherLoading = null; renderWeather(); }
+  })();
+  return weatherLoading;
+}
+function wxDay(dateStr, short){
+  const d = new Date(dateStr+"T12:00:00");
+  return d.toLocaleDateString("en-GB", short ? {weekday:"short"} : {weekday:"short", day:"numeric", month:"short"});
+}
+const r0 = v => v==null ? "?" : Math.round(v);
+function renderWeather(){
+  const html = !weather ? '<p class="muted" style="margin:0">Weather forecast unavailable right now.</p>'
+    : `<div class="wx">${weather.days.map(d=>{ const [ico,txt]=wxInfo(d.code);
+        return `<div class="wx-day" title="${esc(txt)}"><b>${esc(wxDay(d.date,true))}</b><div class="wx-ico">${ico}</div>${r0(d.tmax)}° / ${r0(d.tmin)}°<div class="wx-rain">${d.rain==null?"?":(+d.rain).toFixed(1)} mm</div></div>`; }).join("")}</div>
+       <div class="muted" style="margin-top:6px">${esc(CONFIG.location.name)} · updated ${new Date(weather.fetchedAt).toLocaleString("en-GB",{weekday:"short",hour:"2-digit",minute:"2-digit"})}${Date.now()-weather.fetchedAt>6*36e5?" (old, no connection)":""}</div>`;
+  document.querySelectorAll(".wx-box").forEach(el=>el.innerHTML=html);
+}
+function weatherText(){
+  if(!weather) return "not available";
+  return weather.days.map(d=>`- ${wxDay(d.date)}: ${r0(d.tmin)} to ${r0(d.tmax)}°C, ${wxInfo(d.code)[1]}, rain ${d.rain==null?"?":(+d.rain).toFixed(1)} mm (${d.prob==null?"?":d.prob}% chance)`).join("\n");
+}
 
 /* =====================================================================
    SHARED DATA (Google Sheet). Only used when CONFIG.sheetUrl is filled in.
@@ -491,6 +562,9 @@ ${register}
 SENSOR SUMMARY [SENSOR] (selected spot is ${bed}):
 ${sensorLines}
 
+WEATHER FORECAST [WEATHER] (${CONFIG.location.name}, next 7 days):
+${weatherText()}
+
 COMMUNITY KNOWLEDGE:
 ${kn || "(none yet)"}`;
 }
@@ -564,6 +638,7 @@ async function ask(){
   const bed=$("q-bed").value, q=$("q-text").value.trim();
   if(!q){ $("q-text").focus(); return; }
   const photo = await readPhoto();
+  await loadWeather();
   const system = state.settings.prompt, user = buildUserMessage(bed, q, !!photo);
   lastAsk = {bed, question:q, system, user, photo, at:new Date().toISOString()};
   $("result").innerHTML="";
@@ -581,21 +656,21 @@ async function ask(){
 function copyPrompt(){ navigator.clipboard?.writeText($("manual-prompt").textContent).then(()=>{$("copied").textContent="Copied ✓"; setTimeout(()=>$("copied").textContent="",2000);}); }
 function useManual(){ const raw=$("manual-answer").value.trim(); if(!raw) return; $("manual").classList.add("hidden"); showResult(raw); }
 
-function sourceTag(id){
-  if(id==="SENSOR") return `<button class="tag amber" onclick="toggleSrc(this,'SENSOR')">📈 Sensor</button>`;
-  if(id==="GENERAL") return `<button class="tag grey" onclick="toggleSrc(this,'GENERAL')">🌍 General knowledge</button>`;
+// One line in the (i) panel explaining a source the AI cited.
+function sourceItem(id){
+  id = String(id).trim();
+  if(id==="SENSOR") return `<li><b>Sensor:</b> ${esc(bedStatus(lastAsk.bed).text)}</li>`;
+  if(id==="WEATHER") return `<li><b>Weather forecast</b> for ${esc(CONFIG.location.name)}, next 7 days.</li>`;
+  if(id==="GENERAL") return `<li><b>General knowledge:</b> the AI's own knowledge, not tested on this plot yet.</li>`;
   const k=state.knowledge.find(k=>k.id===id);
-  if(!k) return `<span class="tag red" title="This id does not exist in the knowledge base">⚠ ${esc(id)} (unknown)</span>`;
-  return `<button class="tag ${TYPE_TAG[k.type]}" onclick="toggleSrc(this,'${k.id}')">${k.id} · ${(TYPE_LABEL[k.type]||k.type)}${k.status!=="validated"?" (unconfirmed)":""}</button>`;
+  if(!k) return `<li><b>${esc(id)}:</b> not found in the knowledge base.</li>`;
+  return `<li><b>${k.id} · ${esc(TYPE_LABEL[k.type]||k.type)}${k.status!=="validated"?" (not yet confirmed)":""}:</b> “${esc(k.text)}” <span class="muted">${esc(k.author)}, ${esc(k.date)}</span></li>`;
 }
-function toggleSrc(el,id){
-  const box=el.parentElement.nextElementSibling;
-  if(box.dataset.id===id && !box.classList.contains("hidden")){ box.classList.add("hidden"); return; }
-  let html;
-  if(id==="SENSOR") html = esc(bedStatus(lastAsk.bed).text);
-  else if(id==="GENERAL") html = "The AI's own general knowledge. Not tested on this plot yet.";
-  else { const k=state.knowledge.find(k=>k.id===id); html=`"${esc(k.text)}"<br><span class="muted">${esc(k.author)} · ${esc(k.date)} · applies to ${esc(k.bed)}</span>`; }
-  box.innerHTML=html; box.dataset.id=id; box.classList.remove("hidden");
+function infoButton(){ return `<button class="info-btn" aria-label="Show what this is based on" aria-expanded="false" onclick="toggleInfo(this)">i</button>`; }
+function toggleInfo(btn){
+  const panel = btn.closest(".card").querySelector(".info");
+  const open = panel.classList.toggle("hidden") === false;
+  btn.setAttribute("aria-expanded", open);
 }
 function showResult(raw){
   const a = parseAnswer(raw); lastAsk.raw=raw; lastAsk.answer=a;
@@ -605,16 +680,20 @@ function showResult(raw){
   } else {
     a.options = a.options.filter(o=>o && o.action);
     if(a.cutOff) html += `<div class="notice">The AI's answer was cut off before the end. Everything that arrived is shown below.</div>`;
-    const conf={low:"red",medium:"amber",high:""}[(a.confidence||"").toLowerCase()] ?? "grey";
-    html += `<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">What's likely going on</h3><span class="tag ${conf}">Confidence: ${esc(a.confidence||"?")}</span></div><p style="margin:8px 0 0">${esc(a.summary||"")}</p></div>`;
+    html += `<div class="card"><div class="card-head"><h3 style="margin:0">What's likely going on</h3>${a.confidence?infoButton():""}</div>
+      <p style="margin:8px 0 0">${esc(a.summary||"")}</p>
+      <div class="info hidden"><p>How sure the AI is: <b>${esc(a.confidence||"")}</b></p></div></div>`;
     html += `<h3 style="margin:16px 0 8px">Options, you decide</h3>`;
     a.options.forEach((o,i)=>{
       const general = (o.basis||"").toLowerCase().startsWith("general");
-      html += `<div class="card option ${general?"general":""}">
-        <h3>${i+1}. ${esc(o.action||"")}</h3>
-        ${general?'<span class="tag amber">Not yet tested on this plot</span>':'<span class="tag">Based on local knowledge</span>'}
-        <p style="margin:8px 0"><b>Why:</b> ${esc(o.why||"")}</p>
-        <div>${(o.sources||[]).map(sourceTag).join("")}</div><div class="srcbox hidden"></div></div>`;
+      const sources = Array.isArray(o.sources) ? o.sources : (o.sources ? [o.sources] : []);
+      html += `<div class="card">
+        <div class="card-head"><h3 style="margin:0">${i+1}. ${esc(o.action||"")}</h3>${infoButton()}</div>
+        <p style="margin:8px 0 0"><b>Why:</b> ${esc(o.why||"")}</p>
+        <div class="info hidden">
+          <p><b>Based on:</b> ${general ? "general knowledge, not yet tested on this plot." : "local knowledge from this farm."}</p>
+          ${sources.length ? `<b>Sources:</b><ul>${sources.map(sourceItem).join("")}</ul>` : "<p>No sources given.</p>"}
+        </div></div>`;
     });
     if(a.uncertainty) html += `<div class="card"><h3>Not sure about</h3><p style="margin:0">${esc(a.uncertainty)}</p></div>`;
   }
@@ -782,7 +861,7 @@ function updateBedStatus(){ const bed=$("q-bed").value, s=bedStatus(bed), p=plan
     + `<div style="margin-top:6px">🌿 ${p ? "Growing here: "+esc(p) : '<span class="muted">What grows here isn\'t filled in yet (Knowledge tab → What grows where).</span>'}</div>`; }
 $("s-provider").addEventListener("change", providerFields);
 
-load(); initDataCard(); refresh(); pull(true);
+load(); initDataCard(); refresh(); pull(true); loadWeather();
 $("q-bed").addEventListener("change", updateBedStatus);
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") pull(); });
 </script>
