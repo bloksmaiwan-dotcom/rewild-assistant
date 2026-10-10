@@ -20,10 +20,20 @@ header h1 span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .logo{height:34px;width:auto;max-width:110px;object-fit:contain;background:#fff;border-radius:8px;padding:3px 5px;flex-shrink:0}
 header{gap:8px}
 header button{background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:8px;padding:4px 10px;font-size:13px}
-main{position:relative;z-index:1;max-width:680px;margin:0 auto;padding:16px 16px 96px}
-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:5}
-nav button{flex:1;border:0;background:none;padding:10px 4px 12px;font-size:13px;color:var(--muted)}
-nav button.on{color:var(--green);font-weight:650;box-shadow:inset 0 3px 0 var(--green)}
+main{position:relative;z-index:1;max-width:680px;margin:0 auto;padding:16px 16px 48px}
+.menu-btn{font-size:20px !important;line-height:1;padding:4px 10px !important}
+.menu{position:fixed;top:58px;right:12px;z-index:20;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.14);min-width:210px;padding:6px}
+.menu button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;font:inherit;padding:11px 12px;border-radius:8px;color:var(--ink);cursor:pointer}
+.menu button:hover,.menu button.on{background:var(--green-soft);color:var(--green);font-weight:600}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
+.back{border:0;background:none;color:var(--green);font:inherit;font-weight:600;padding:4px 0;margin-bottom:6px;cursor:pointer}
+.ask-card h2{font-size:22px;margin:2px 0 6px}
+.ask-card textarea{min-height:150px;font-size:17px}
+.ask-card select{font-size:16px}
+.btn.big{width:100%;padding:14px;font-size:17px;margin-top:14px}
+.rate-row{display:flex;gap:10px;margin-top:8px}
+.rate-row button{flex:1;padding:12px;font:inherit;font-weight:600;border-radius:10px;border:1px solid #cfc9bc;background:#fff;cursor:pointer}
+.rate-row button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
 h2{font-size:18px;margin:4px 0 12px} h3{font-size:15px;margin:0 0 6px}
 label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
@@ -64,13 +74,22 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 </style>
 </head>
 <body>
-<header><h1><img class="logo" src="rewildlogo.png" alt="Rewild Farming logo" onerror="this.outerHTML='🌱'"><span>Rewild Farming Assistant</span></h1><div style="display:flex;align-items:center;flex-shrink:0"><button id="sync" class="sync hidden" onclick="pull(true)" title="Tap to refresh shared data"></button><button onclick="show('settings')" aria-label="Settings" title="Settings" style="font-size:16px;padding:2px 9px">⚙</button></div></header>
+<header><h1 onclick="show('ask')" style="cursor:pointer"><img class="logo" src="rewildlogo.png" alt="Rewild Farming logo" onerror="this.outerHTML='🌱'"><span>Rewild Farming Assistant</span></h1><div style="display:flex;align-items:center;flex-shrink:0"><button id="sync" class="sync hidden" onclick="pull(true)" title="Tap to refresh shared data"></button><button id="menu-btn" class="menu-btn" onclick="toggleMenu(event)" aria-label="Menu" aria-expanded="false" aria-controls="menu">☰</button></div></header>
+<div id="menu" class="menu hidden" role="menu">
+  <button data-v="ask" onclick="show('ask')">💬 Ask</button>
+  <hr>
+  <button data-v="kit" onclick="show('kit')">📈 Kit data</button>
+  <button data-v="kb" onclick="show('kb')">📚 Knowledge</button>
+  <button data-v="log" onclick="show('log')">✏️ Log</button>
+  <button data-v="advice" onclick="show('advice')">⭐ Advice history</button>
+  <hr>
+  <button data-v="settings" onclick="show('settings')">⚙ Settings</button>
+</div>
 <main>
 
 <!-- ============ ASK ============ -->
 <section id="v-ask">
-  <div class="card"><h3>Weather next 7 days</h3><div class="wx-box"></div></div>
-  <div class="card">
+  <div class="card ask-card">
     <h2>What do you see in the garden?</h2>
     <label for="q-bed">Where?</label>
     <select id="q-bed"></select>
@@ -79,8 +98,10 @@ svg.spark{width:100%;height:40px;margin-top:6px}
     <label for="q-photo">Photo (optional)</label>
     <input id="q-photo" type="file" accept="image/*">
     <div id="q-bedstatus" class="srcbox"></div>
-    <div class="row" style="margin-top:12px"><button class="btn" id="q-go" onclick="ask()">Get advice</button><span id="q-mode" class="muted"></span></div>
+    <button class="btn big" id="q-go" onclick="ask()">Get advice</button>
+    <div id="q-mode" class="muted" style="margin-top:6px;text-align:center"></div>
   </div>
+  <div class="card"><h3>Weather next 7 days</h3><div class="wx-box"></div></div>
 
   <!-- manual (copy/paste) mode -->
   <div class="card hidden" id="manual">
@@ -98,6 +119,7 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 
 <!-- ============ KIT DATA ============ -->
 <section id="v-kit" class="hidden">
+  <button class="back" onclick="show('ask')">← Back to Ask</button>
   <h2>Kit data</h2>
   <div class="card"><h3>Weather next 7 days</h3><div class="wx-box"></div></div>
   <div id="kit-cards"></div>
@@ -113,6 +135,7 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 
 <!-- ============ KNOWLEDGE ============ -->
 <section id="v-kb" class="hidden">
+  <button class="back" onclick="show('ask')">← Back to Ask</button>
   <h2>Community knowledge</h2>
   <div class="card">
     <h3>What grows where</h3>
@@ -143,6 +166,7 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 
 <!-- ============ LOG ============ -->
 <section id="v-log" class="hidden">
+  <button class="back" onclick="show('ask')">← Back to Ask</button>
   <h2>Quick log</h2>
   <div class="card">
     <p class="muted">Saw or did something in the garden? Log it in under a minute. It becomes knowledge others can learn from once an experienced farmer confirms it.</p>
@@ -155,8 +179,20 @@ svg.spark{width:100%;height:40px;margin-top:6px}
   <div class="card"><h3>Recent logs</h3><div id="log-list"></div></div>
 </section>
 
+<!-- ============ ADVICE HISTORY ============ -->
+<section id="v-advice" class="hidden">
+  <button class="back" onclick="show('ask')">← Back to Ask</button>
+  <h2>Advice history</h2>
+  <div class="card">
+    <p class="muted" style="margin-top:0">Every question and the AI's answer, with how people rated it. Rated advice is given back to the AI with similar questions, so it can build on what worked and avoid what didn't.</p>
+    <div class="row"><select id="adv-filter" style="width:auto" onchange="renderAdvice()"><option value="all">All</option><option value="good">Rated good</option><option value="not good">Rated not good</option><option value="">Not rated yet</option></select><span id="adv-count" class="muted"></span></div>
+    <div id="adv-list"></div>
+  </div>
+</section>
+
 <!-- ============ SETTINGS ============ -->
 <section id="v-settings" class="hidden">
+  <button class="back" onclick="show('ask')">← Back to Ask</button>
   <h2>Settings</h2>
   <div class="card">
     <h3>AI connection</h3>
@@ -191,12 +227,6 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 </section>
 
 </main>
-<nav>
-  <button data-v="ask" class="on" onclick="show('ask')">💬 Ask</button>
-  <button data-v="kit" onclick="show('kit')">📈 Kit data</button>
-  <button data-v="kb" onclick="show('kb')">📚 Knowledge</button>
-  <button data-v="log" onclick="show('log')">✏️ Log</button>
-</nav>
 
 <script>
 /* =====================================================================
@@ -207,7 +237,7 @@ const CONFIG = {
   // Leave empty ("") and everything is stored only in this browser.
   sheetUrl: "https://script.google.com/macros/s/AKfycbz_xGaC5uArHGLkrt5YMCTuzBvOuIK_ZGq381mMawTJk0OkNwI4zQ1idYXmeNJEp65R/exec",
   // Replace with Rewild's real layout. "type" is passed to the AI as context.
-  // What grows in each bed is edited in the app itself (Knowledge tab → What grows where).
+  // What grows in each bed is edited in the app itself (Menu ☰ → Knowledge → What grows where).
   beds: [
     {name:"Bed 1", type:"vegetable raised bed"},
     {name:"Bed 2", type:"vegetable raised bed"},
@@ -222,6 +252,7 @@ const CONFIG = {
   trendDelta: 5,        // change in daily mean (%-points) that counts as rising/falling
   oldAfterDays: 3,      // readings older than this are flagged as old
   maxKnowledgeInPrompt: 40,
+  maxFeedbackInPrompt: 5,   // how many rated earlier answers are given back to the AI
   defaultModels: {anthropic:"claude-sonnet-5-5", openai:"gpt-4o-mini"}
 };
 const SHARED = !!CONFIG.sheetUrl.trim();
@@ -230,7 +261,7 @@ const DEFAULT_PROMPT = `You are the Rewild Farming assistant. You help volunteer
 
 RULES
 1. Give 2 or 3 possible actions, not one instruction. The volunteer chooses.
-2. Every option cites its sources by id: knowledge ids like K3, SENSOR for the sensor summary, WEATHER for the forecast, GENERAL for your own general knowledge.
+2. Every option cites its sources by id: knowledge ids like K3, earlier advice like A2, SENSOR for the sensor summary, WEATHER for the forecast, GENERAL for your own general knowledge.
 3. Prefer local knowledge (experienced farmers, Rewild practice rules, confirmed observations) over general knowledge. Set "basis" to "general" when an option relies only on GENERAL: it has not been tested on this plot.
 4. Unconfirmed member observations are hints, not facts. Say so when you use one.
 5. Rewild practice rules always win over general gardening advice. In the rewilding zone never suggest watering, fertilising or tidying; suggest observing or passive measures instead.
@@ -238,8 +269,9 @@ RULES
 7. Plain language, short sentences, no jargon (explain any term you must use). The "why" explains the ecological reason in 1 or 2 sentences so the volunteer learns something.
 8. Use the planting register (WHAT GROWS WHERE) to know which plants are in the spot. If it says "not recorded" and the question doesn't say either, mention in "uncertainty" that you don't know what grows there.
 9. Take the weather forecast into account: if rain is expected in the coming days, watering is often not needed; warn about frost (below 0°C) for tender plants; don't plan work during heavy rain.
-10. If you can't tell what is going on, say so in "uncertainty" and say what to look at or who to ask.
-11. Never invent knowledge entries, ids, sensor values or weather.
+10. Learn from FEEDBACK ON EARLIER ADVICE: build on advice that members rated good in a similar situation. Don't repeat advice rated not good for a similar situation, unless you explain what is different now. Cite the A-id when you use it.
+11. If you can't tell what is going on, say so in "uncertainty" and say what to look at or who to ask.
+12. Never invent knowledge entries, ids, sensor values or weather.
 
 LENGTH
 Keep it short, the volunteer reads this on a phone in the garden: summary max 2 sentences, each action max 25 words, each why max 2 sentences, uncertainty max 2 sentences.
@@ -254,7 +286,7 @@ Reply with JSON only. No text before or after it, no code fences. Exactly this f
   "uncertainty": "what you are unsure about and what to check",
   "confidence": "low, medium or high"
 }`;
-const PROMPT_VERSION = 3;  // raise this when you change DEFAULT_PROMPT, so saved copies get updated
+const PROMPT_VERSION = 4;  // raise this when you change DEFAULT_PROMPT, so saved copies get updated
 
 /* Example knowledge entries so the prototype isn't empty.
    These are EXAMPLES written by the design team: replace them with real
@@ -329,7 +361,7 @@ const TYPE_TAG = {farmer:"", member:"blue", rule:"red", general:"grey"};
 function store(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 function freshState(){
   return {knowledge: SHARED ? [] : SEED_KNOWLEDGE.map(k=>({...k})), sensor: SHARED ? [] : parseSensorCSV(SAMPLE_CSV, null).rows, logs: [],
-    plantings: {},
+    plantings: {}, advice: [],
     settings: {provider:"manual", key:"", model:"", prompt: DEFAULT_PROMPT, promptV: PROMPT_VERSION, promptCustom:false, demo:true}};
 }
 function load(){
@@ -337,6 +369,7 @@ function load(){
   state = s || freshState();
   state.sensor.forEach(r=>r.t=new Date(r.t));
   state.plantings = state.plantings || {};
+  state.advice = state.advice || [];
   CONFIG.beds.forEach(b=>{ if(!state.plantings[b.name]) state.plantings[b.name] = {plants:"", updated:""}; });
   // A newer default prompt replaces the saved one, unless your group edited it in Settings.
   if(state.settings.promptV !== PROMPT_VERSION && !state.settings.promptCustom){
@@ -434,6 +467,7 @@ function applyRemote(j){
   const num = v => { const x=parseFloat(String(v).replace(",",".")); return isNaN(x) ? null : x; };
   state.knowledge = j.knowledge.map(k=>({...k, type:(k.type||"member").toLowerCase().trim(), status:(k.status||"pending").toLowerCase().trim(), bed:k.bed||"All"}));
   state.logs = j.logs.slice().reverse();
+  if(Array.isArray(j.advice)) state.advice = j.advice;
   state.plantings = {}; j.plantings.forEach(p=>{ state.plantings[p.bed] = {plants:p.plants, updated:p.updated}; });
   CONFIG.beds.forEach(b=>{ if(!state.plantings[b.name]) state.plantings[b.name] = {plants:"", updated:""}; });
   state.sensor = j.sensor.map(r=>({t:new Date(r.t), bed:r.bed, soil:num(r.soil), temp:num(r.temp), hum:num(r.hum), light:num(r.light)})).filter(r=>!isNaN(r.t));
@@ -542,6 +576,16 @@ function relevantKnowledge(bed, question){
   }
   return ks;
 }
+// Rated earlier advice that fits this question: same spot or shared words. This is how the system learns.
+function relevantFeedback(bed, question){
+  const words = new Set(question.toLowerCase().split(/\W+/).filter(w=>w.length>3));
+  return state.advice.filter(a=>a.rating)
+    .map(a=>{ const overlap = String(a.question||"").toLowerCase().split(/\W+/).filter(w=>words.has(w)).length;
+              return [overlap*2 + (a.bed===bed?3:0), a]; })
+    .filter(x=>x[0]>0)
+    .sort((x,y)=> y[0]-x[0] || String(y[1].date).localeCompare(String(x[1].date)))
+    .slice(0, CONFIG.maxFeedbackInPrompt).map(x=>x[1]);
+}
 function buildUserMessage(bed, question, hasPhoto){
   const sensorLines = CONFIG.beds.map(b=>"- "+bedStatus(b.name).text).join("\n");
   const kn = relevantKnowledge(bed, question).map(k=>
@@ -566,7 +610,10 @@ WEATHER FORECAST [WEATHER] (${CONFIG.location.name}, next 7 days):
 ${weatherText()}
 
 COMMUNITY KNOWLEDGE:
-${kn || "(none yet)"}`;
+${kn || "(none yet)"}
+
+FEEDBACK ON EARLIER ADVICE (rated by members):
+${relevantFeedback(bed, question).map(a=>`[${a.id}] ${a.date}, ${a.bed}: "${a.question}" → advice: ${a.options} → rated ${String(a.rating).toUpperCase()}${a.ratedBy?" by "+a.ratedBy:""}${a.feedback?`: "${a.feedback}"`:""}`).join("\n") || "(none yet)"}`;
 }
 
 /* =====================================================================
@@ -662,6 +709,9 @@ function sourceItem(id){
   if(id==="SENSOR") return `<li><b>Sensor:</b> ${esc(bedStatus(lastAsk.bed).text)}</li>`;
   if(id==="WEATHER") return `<li><b>Weather forecast</b> for ${esc(CONFIG.location.name)}, next 7 days.</li>`;
   if(id==="GENERAL") return `<li><b>General knowledge:</b> the AI's own knowledge, not tested on this plot yet.</li>`;
+  if(/^A\d+$/i.test(id)){ const a=state.advice.find(a=>a.id===id.toUpperCase());
+    return a ? `<li><b>${a.id} · earlier advice rated ${esc(a.rating||"(not rated)")}:</b> “${esc(a.question)}”${a.feedback?` · feedback: “${esc(a.feedback)}”`:""} <span class="muted">${esc(a.date)}</span></li>`
+             : `<li><b>${esc(id)}:</b> not found in the advice history.</li>`; }
   const k=state.knowledge.find(k=>k.id===id);
   if(!k) return `<li><b>${esc(id)}:</b> not found in the knowledge base.</li>`;
   return `<li><b>${k.id} · ${esc(TYPE_LABEL[k.type]||k.type)}${k.status!=="validated"?" (not yet confirmed)":""}:</b> “${esc(k.text)}” <span class="muted">${esc(k.author)}, ${esc(k.date)}</span></li>`;
@@ -697,6 +747,12 @@ function showResult(raw){
     });
     if(a.uncertainty) html += `<div class="card"><h3>Not sure about</h3><p style="margin:0">${esc(a.uncertainty)}</p></div>`;
   }
+  html += `<div class="card" id="rate-card"><h3>Was this advice good?</h3>
+    <div class="rate-row"><button data-r="good" onclick="pickRating(this)">👍 Good</button><button data-r="not good" onclick="pickRating(this)">👎 Not good</button></div>
+    <label for="rate-text">What was good or wrong? (helps the assistant learn)</label><textarea id="rate-text" style="min-height:60px" placeholder="e.g. Mulching worked, but we don't have straw on site"></textarea>
+    <label for="rate-author">Your name</label><input id="rate-author">
+    <button class="btn" style="margin-top:10px" onclick="saveRating(this)">Save rating</button><div id="rate-msg"></div>
+    <div id="adv-saved" class="muted" style="margin-top:8px"></div></div>`;
   html += `<details class="card"><summary>What the AI received (for checking)</summary><pre>${esc(lastAsk.user)}</pre></details>`;
   const opts = a ? a.options.map((o,i)=>`<option value="${i}">Option ${i+1}: ${esc(o.action.length>60 ? o.action.slice(0,57)+"…" : o.action)}</option>`).join("") : "";
   html += `<div class="card" id="followup"><h3>After you tried something: what happened?</h3>
@@ -711,6 +767,58 @@ function showResult(raw){
     <button class="btn" style="margin-top:10px" onclick="saveFollowup(this)">Save to logbook</button><div id="f-msg"></div></div>`;
   $("result").innerHTML = html;
   $("result").scrollIntoView({behavior:"smooth"});
+  lastAsk.saving = saveAdvice(raw, a);
+}
+function modelLabel(){ const s=state.settings; return aiReady() ? `${s.provider}: ${s.model||CONFIG.defaultModels[s.provider]}` : "manual (pasted from a chatbot)"; }
+// Saves the question, the full prompt and the answer (Advice tab in the sheet).
+async function saveAdvice(raw, a){
+  const rec = {date:today(), bed:lastAsk.bed, author:"", question:lastAsk.question,
+    summary: a ? (a.summary||"") : "", options: a ? a.options.map((o,i)=>`${i+1}. ${o.action}`).join(" | ") : String(raw).slice(0,300),
+    model: modelLabel(), prompt: lastAsk.user, answer: raw, system: lastAsk.system};
+  try{
+    let saved;
+    if(SHARED){ saved = (await sheetPost("advice", {advice: rec})).advice; }
+    else { const n = Math.max(0, ...state.advice.map(x=>parseInt(String(x.id).slice(1))||0)) + 1; saved = {...rec, id:"A"+n, rating:"", feedback:"", ratedBy:"", ratedOn:""}; }
+    state.advice.push(saved); store(); lastAsk.adviceId = saved.id;
+    if($("adv-saved")) $("adv-saved").textContent = `Saved as ${saved.id} in the advice history.`;
+    return saved.id;
+  }catch(e){
+    if($("adv-saved")) $("adv-saved").innerHTML = `<span style="color:var(--red)">This advice wasn't saved (${esc(e.message)}). If the page was just updated, the Google script needs its new version too.</span>`;
+    return null;
+  }
+}
+function pickRating(btn){ btn.parentElement.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b===btn)); }
+function saveRating(btn){
+  const picked = document.querySelector("#rate-card .rate-row button.on");
+  if(!picked){ $("rate-msg").innerHTML = `<div class="notice" style="margin-top:8px">Choose 👍 Good or 👎 Not good first.</div>`; return; }
+  busy(btn, async()=>{
+    const id = lastAsk.adviceId || await lastAsk.saving;
+    if(!id) throw new Error("the advice itself wasn't saved");
+    await rateAdvice(id, picked.dataset.r, $("rate-text").value.trim(), $("rate-author").value.trim()||"Anonymous");
+    $("rate-msg").innerHTML = `<div class="ok-msg">Thanks! Rating saved for ${id}. The assistant will use it for similar questions.</div>`;
+  }, "rate-msg");
+}
+async function rateAdvice(id, rating, feedback, ratedBy){
+  if(SHARED) await sheetPost("rate", {id, rating, feedback, ratedBy});
+  const a = state.advice.find(a=>a.id===id);
+  if(a) Object.assign(a, {rating, feedback, ratedBy, ratedOn:today()});
+  store();
+}
+function rateFromHistory(btn, id, rating){
+  busy(btn, async()=>{ await rateAdvice(id, rating, "", "Anonymous"); renderAdvice(); }, "adv-count");
+}
+function renderAdvice(){
+  const f = $("adv-filter").value;
+  const list = [...state.advice].reverse().filter(a => f==="all" || (a.rating||"")===f);
+  $("adv-count").textContent = `${list.length} of ${state.advice.length}`;
+  $("adv-list").innerHTML = list.map(a=>`<div class="kb">
+    <div class="row" style="justify-content:space-between"><b>${esc(a.id)} · ${esc(a.bed)}</b><span class="muted">${esc(a.date)}</span></div>
+    <div style="margin:4px 0"><b>Q:</b> ${esc(a.question)}</div>
+    ${a.summary?`<div class="muted">${esc(a.summary)}</div>`:""}
+    <div style="margin:4px 0;font-size:13px">${esc(a.options).split(" | ").join("<br>")}</div>
+    ${a.rating ? `<div>${a.rating==="good"?"👍 Good":"👎 Not good"}${a.ratedBy?` · ${esc(a.ratedBy)}`:""}${a.feedback?`: “${esc(a.feedback)}”`:""}</div>`
+      : `<div class="row"><span class="muted">Not rated yet</span><button class="btn small ghost" onclick="rateFromHistory(this,'${esc(a.id)}','good')">👍</button><button class="btn small ghost" onclick="rateFromHistory(this,'${esc(a.id)}','not good')">👎</button></div>`}
+  </div>`).join("") || '<p class="muted">No advice yet. Ask a question first.</p>';
 }
 function followupFields(){
   const did=$("f-did").value, hasOpts=$("f-opt").options.length>0;
@@ -724,7 +832,7 @@ function saveFollowup(btn){
     chosen = o ? `followed option ${+$("f-opt").value+1} (${o.action})` : "followed the advice"; }
   else if(did==="other"){ chosen = "something else" + ($("f-other").value.trim() ? `: ${$("f-other").value.trim()}` : ""); }
   else chosen = "nothing yet";
-  const text = `Problem: ${lastAsk.question} | Did: ${chosen}${txt?" | Result: "+txt:""} | Advice matched: ${match}`;
+  const text = `Problem: ${lastAsk.question} | Did: ${chosen}${txt?" | Result: "+txt:""} | Advice matched: ${match}${lastAsk.adviceId?` (advice ${lastAsk.adviceId})`:""}`;
   busy(btn, async()=>{
     const k = await addEntry({type:"member", bed:lastAsk.bed, text, author}, {kind:"followup", match, question:lastAsk.question});
     $("f-msg").innerHTML=`<div class="ok-msg">Saved as ${k.id}. It shows as "needs checking" until an experienced farmer confirms it.</div>`;
@@ -844,21 +952,25 @@ function resetAll(){ if(!confirm("Replace everything in this browser with the ex
    ===================================================================== */
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-function show(v){ ["ask","kit","kb","log","settings"].forEach(x=>$("v-"+x).classList.toggle("hidden",x!==v));
-  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
-  if(v==="settings") fillSettings(); refresh(); window.scrollTo(0,0); pull(); }
+function show(v){ ["ask","kit","kb","log","advice","settings"].forEach(x=>$("v-"+x).classList.toggle("hidden",x!==v));
+  document.querySelectorAll("#menu button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+  closeMenu(); if(v==="settings") fillSettings(); refresh(); window.scrollTo(0,0); pull(); }
+function toggleMenu(e){ e.stopPropagation(); const open=$("menu").classList.toggle("hidden")===false; $("menu-btn").setAttribute("aria-expanded", open); }
+function closeMenu(){ $("menu").classList.add("hidden"); $("menu-btn").setAttribute("aria-expanded", false); }
+document.addEventListener("click", e=>{ if(!$("menu").contains(e.target)) closeMenu(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeMenu(); });
 function refresh(){
   const opts=CONFIG.beds.map(b=>`<option>${esc(b.name)}</option>`).join("");
   ["q-bed","kit-bed","log-bed"].forEach(id=>{ const v=$(id).value; $(id).innerHTML=opts; if(v) $(id).value=v; });
   const kv=$("kb-bed").value; $("kb-bed").innerHTML='<option>All</option>'+opts; if(kv) $("kb-bed").value=kv;
-  updateBedStatus(); renderKit(); renderPlantings(); renderKB(); renderLogs();
+  updateBedStatus(); renderKit(); renderPlantings(); renderKB(); renderLogs(); renderAdvice();
   const s=state.settings;
-  $("q-mode").textContent = !aiReady() ? "Manual AI mode (see Settings)"
+  $("q-mode").textContent = !aiReady() ? "Manual AI mode (Menu ☰ → Settings to add a key)"
     : "AI: "+(s.model||CONFIG.defaultModels[s.provider]);
 }
 function updateBedStatus(){ const bed=$("q-bed").value, s=bedStatus(bed), p=plantsIn(bed);
   $("q-bedstatus").innerHTML=`<span class="lvl ${s.level}" style="font-size:12px;padding:2px 8px;border-radius:99px">${s.label}</span> ${esc(s.text)}`
-    + `<div style="margin-top:6px">🌿 ${p ? "Growing here: "+esc(p) : '<span class="muted">What grows here isn\'t filled in yet (Knowledge tab → What grows where).</span>'}</div>`; }
+    + `<div style="margin-top:6px">🌿 ${p ? "Growing here: "+esc(p) : '<span class="muted">What grows here isn\'t filled in yet (Menu ☰ → Knowledge → What grows where).</span>'}</div>`; }
 $("s-provider").addEventListener("change", providerFields);
 
 load(); initDataCard(); refresh(); pull(true); loadWeather();
