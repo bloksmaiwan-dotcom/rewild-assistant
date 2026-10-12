@@ -110,7 +110,8 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 <!-- ============ ASK ============ -->
 <section id="v-ask">
   <div class="card map-card" id="map-card">
-    <img src="layoutFarm.png" alt="Map of the farm beds" onclick="window.open(this.src,'_blank')" onerror="this.closest('.card').remove()">
+    <img id="map-img" src="layoutFarm.png" alt="Map of the farm beds" onclick="window.open(this.src,'_blank')" onerror="if(!this.dataset.r){this.dataset.r='1';var i=this;setTimeout(function(){i.src='layoutFarm.png?t='+Date.now();},1500);}else{this.style.display='none';document.getElementById('map-msg').classList.remove('hidden');}">
+    <div id="map-msg" class="muted hidden" style="padding:6px 4px">The farm map (layoutFarm.png) could not be loaded. Check that the file is a PNG or JPG image and sits next to index.html.</div>
   </div>
   <div class="card ask-card">
     <h2>What do you see in the garden?</h2>
@@ -276,11 +277,8 @@ const CONFIG = {
   // Replace with Rewild's real layout. "type" is passed to the AI as context.
   // What grows in each bed is edited in the app itself (Menu ☰ → Knowledge &amp; beds).
   beds: [
-    {name:"Bed 1", type:"vegetable raised bed"},
-    {name:"Bed 2", type:"vegetable raised bed"},
-    {name:"Bed 3", type:"vegetable raised bed"},
-    {name:"Bed 4", type:"vegetable raised bed"},
-    {name:"Rewilding zone", type:"rewilding area with native species, low intervention: no watering, no fertiliser, no weeding except invasive species"}
+    {name:"Rewilding zone", type:"rewilding area with native species, low intervention: no watering, no fertiliser, no weeding except invasive species"},
+    ...[1,2,3,4,5,6,7,8,9].map(n=>({name:"Bed "+n, type:"vegetable raised bed"}))
   ],
   // Location for the weather forecast (Open-Meteo, free, no key needed).
   location: {name:"Eindhoven", lat:51.44, lon:5.48},
