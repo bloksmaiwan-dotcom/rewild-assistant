@@ -31,6 +31,16 @@ main{position:relative;z-index:1;max-width:680px;margin:0 auto;padding:16px 16px
 .item-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
 .filters select{width:auto;flex:1;min-width:130px}
+.modal-bg{position:fixed;inset:0;z-index:50;background:rgba(31,42,31,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-radius:14px;padding:18px;max-width:380px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.modal h3{font-size:17px;margin:0 0 6px} .modal p{margin:0 0 16px;color:var(--muted)}
+.modal .row{justify-content:flex-end}
+.btn.danger{background:var(--red)}
+.sown{font-size:12px;color:var(--muted);font-weight:400;white-space:nowrap}
+.add-bed{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.add-bed input{flex:1}
+.flash{animation:flash 1.6s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 3px var(--green)}100%{box-shadow:0 0 0 0 transparent}}
 .menu-btn{font-size:20px !important;line-height:1;padding:4px 10px !important}
 .menu{position:fixed;top:58px;right:12px;z-index:20;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.14);min-width:210px;padding:6px}
 .menu button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;font:inherit;padding:11px 12px;border-radius:8px;color:var(--ink);cursor:pointer}
@@ -86,6 +96,9 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 <body>
 <header><h1 onclick="show('ask')" style="cursor:pointer"><img class="logo" src="rewildlogo.png" alt="Rewild Farming logo" onerror="this.outerHTML='🌱'"><span>Rewild Farming Assistant</span></h1><div style="display:flex;align-items:center;flex-shrink:0"><button id="sync" class="sync hidden" onclick="pull(true)" title="Tap to refresh shared data"></button><button id="menu-btn" class="menu-btn" onclick="toggleMenu(event)" aria-label="Menu" aria-expanded="false" aria-controls="menu">☰</button></div></header>
 <div id="menu" class="menu hidden" role="menu">
+  <button data-v="ask" onclick="show('ask')">💬 Ask</button>
+  <button data-v="log" onclick="show('log')">✏️ Log</button>
+  <hr>
   <button data-v="kit" onclick="show('kit')">📈 Kit data</button>
   <button data-v="kb" onclick="show('kb')">📚 Knowledge &amp; beds</button>
   <button data-v="advice" onclick="show('advice')">⭐ Advice history</button>
@@ -157,20 +170,7 @@ svg.spark{width:100%;height:40px;margin-top:6px}
     </div>
     <button class="btn" style="margin-top:10px" onclick="savePlantings(this)">Save planting</button>
     <div id="plant-msg"></div>
-  </div>
-  <div class="card">
-    <h3>Add a bed</h3>
-    <div class="row">
-      <div style="flex:1;min-width:140px"><label for="bed-name">Name</label><input id="bed-name" placeholder="e.g. Bed 5"></div>
-      <div style="flex:1;min-width:140px"><label for="bed-type">Kind of bed</label><select id="bed-type">
-        <option value="vegetable raised bed">Vegetable raised bed</option>
-        <option value="herb bed">Herb bed</option>
-        <option value="fruit and berries">Fruit and berries</option>
-        <option value="rewilding area with native species, low intervention: no watering, no fertiliser, no weeding except invasive species">Rewilding area</option>
-        <option value="other growing area">Other</option></select></div>
-    </div>
-    <label for="bed-plants">What grows there (optional)</label><input id="bed-plants" placeholder="e.g. strawberries">
-    <button class="btn" style="margin-top:10px" onclick="addBed(this)">Add bed</button>
+    <div class="add-bed"><input id="bed-name" placeholder="New bed, e.g. Bed 5" aria-label="Name of the new bed"><button class="btn" onclick="addBed(this)">＋ Add bed</button></div>
     <div id="bed-msg"></div>
   </div>
   <div class="card">
@@ -256,6 +256,10 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 </section>
 
 </main>
+<div id="modal" class="modal-bg hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal"><h3 id="modal-title"></h3><p id="modal-text"></p>
+    <div class="row"><button class="btn ghost" id="modal-no">Cancel</button><button class="btn danger" id="modal-yes">Delete</button></div></div>
+</div>
 <nav class="bottom-nav" aria-label="Main">
   <button data-v="ask" class="on" onclick="show('ask')">💬 Ask</button>
   <button data-v="log" onclick="show('log')">✏️ Log</button>
@@ -424,6 +428,9 @@ function sampleSensorRows(){
   return rows;
 }
 const isGeneral = b => b==="All" || b==="General";
+// "2026-09-20" -> "20 Sep 2026"
+function niceDate(s){ const d=new Date(String(s)+"T12:00:00"); return isNaN(d) ? String(s||"") : `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)} ${d.getFullYear()}`; }
+function sownTag(bed){ const p=state.plantings[bed]||{}; return p.updated && plantsIn(bed) ? `<span class="sown">· sown ${esc(niceDate(p.updated))}</span>` : ""; }
 const bedLabel = b => isGeneral(b) ? "General" : b;
 
 /* =====================================================================
@@ -636,7 +643,7 @@ function buildUserMessage(bed, question, hasPhoto){
   const kn = relevantKnowledge(bed, question).map(k=>
     `[${k.id}] ${TYPE_LABEL[k.type]||k.type} | ${k.status==="validated"?"confirmed":"NOT YET CONFIRMED"} | applies to: ${isGeneral(k.bed)?"whole farm":k.bed} | ${k.text}`).join("\n");
   const register = beds().map(b=>{ const p=state.plantings[b.name]||{};
-    return `- ${b.name}: ${plantsIn(b.name) || "not recorded"}${p.updated && plantsIn(b.name) ? " (updated "+p.updated+")" : ""}`; }).join("\n");
+    return `- ${b.name}: ${plantsIn(b.name) || "not recorded"}${p.updated && plantsIn(b.name) ? " (sown/planted "+p.updated+")" : ""}`; }).join("\n");
   return `LOCATION: ${bed} (${bedType(bed)})
 GROWING HERE: ${plantsIn(bed) || "not recorded"}
 DATE: ${now().toISOString().slice(0,10)}
@@ -932,7 +939,7 @@ function renderKB(){
 function renderPlantings(){
   const bs = beds();
   $("plant-list").innerHTML = bs.map((b,i)=>{ const p=state.plantings[b.name]||{};
-    return `<label for="plant-${i}">${esc(b.name)}${p.updated?` <span class="muted">· since ${esc(p.updated)}</span>`:""}</label>
+    return `<label for="plant-${i}">${esc(b.name)} ${sownTag(b.name)}</label>
       <input id="plant-${i}" data-bed="${esc(b.name)}" value="${esc(p.plants||"")}" placeholder="${/rewild/i.test(b.type)?"e.g. native wildflowers, grasses":"e.g. kale, chard, leeks"}">`; }).join("");
   if(!$("plant-date").value) $("plant-date").value = today();
 }
@@ -962,15 +969,19 @@ function savePlantings(btn){
     $("plant-msg").innerHTML=`<div class="ok-msg">${rows.length?`Saved and logged (${rows.length} bed${rows.length==1?"":"s"} changed on ${esc(date)}).`:"Nothing changed."}</div>`;
   }, "plant-msg");
 }
+// Adds a bed by name only; what grows there is filled in afterwards in the list above.
 function addBed(btn){
-  const name=$("bed-name").value.trim(), type=$("bed-type").value, plants=$("bed-plants").value.trim();
+  const name=$("bed-name").value.trim();
   if(!name){ $("bed-name").focus(); return; }
   if(beds().some(b=>b.name.toLowerCase()===name.toLowerCase()) || isGeneral(name)){
     $("bed-msg").innerHTML=`<div class="notice" style="margin-top:8px">There is already a bed called "${esc(name)}".</div>`; return; }
   busy(btn, async()=>{
-    await writePlantings([{bed:name, plants, updated: plants ? today() : "", type}], $("plant-author").value.trim()||"Anonymous");
-    $("bed-name").value=""; $("bed-plants").value="";
-    refresh(); $("bed-msg").innerHTML=`<div class="ok-msg">${esc(name)} added. It now shows in every list of beds.</div>`;
+    await writePlantings([{bed:name, updated:"", type:"growing bed"}], $("plant-author").value.trim()||"Anonymous");
+    $("bed-name").value=""; $("bed-msg").innerHTML="";
+    refresh();
+    const input = [...document.querySelectorAll("#plant-list input")].find(el=>el.dataset.bed===name);
+    if(input){ input.scrollIntoView({behavior:"smooth", block:"center"}); input.focus(); input.classList.add("flash"); }
+    $("plant-msg").innerHTML=`<div class="ok-msg">${esc(name)} added. Fill in what grows there and tap Save planting.</div>`;
   }, "bed-msg");
 }
 function quickLog(btn){
@@ -1007,10 +1018,22 @@ function renderLogs(){
       <button class="trash" aria-label="Delete log ${esc(l.id)}" title="Delete" onclick="deleteItem(this,'Logs','${esc(l.id)}')">🗑️</button></div>
     <div style="margin-top:4px">${esc(l.text)}</div></div>`).join("") || '<p class="muted">No logs for this selection.</p>';
 }
+// In-app yes/no question (replaces the browser's confirm pop-up). Resolves true or false.
+function askConfirm(title, text, yesLabel){
+  return new Promise(resolve=>{
+    $("modal-title").textContent = title; $("modal-text").textContent = text; $("modal-yes").textContent = yesLabel || "Delete";
+    const m=$("modal"); m.classList.remove("hidden"); $("modal-no").focus();
+    const done = ok => { m.classList.add("hidden"); m.onclick=null; document.removeEventListener("keydown", onKey); resolve(ok); };
+    const onKey = e => { if(e.key==="Escape") done(false); };
+    $("modal-yes").onclick = ()=>done(true); $("modal-no").onclick = ()=>done(false);
+    m.onclick = e => { if(e.target===m) done(false); };
+    document.addEventListener("keydown", onKey);
+  });
+}
 // Delete a log or knowledge entry after asking. A log and its knowledge entry share an id, so both go.
-function deleteItem(btn, sheet, id){
+async function deleteItem(btn, sheet, id){
   const what = sheet==="Logs" ? `this log (${id})${/^K/.test(id)?" and its knowledge entry":""}` : `knowledge entry ${id}`;
-  if(!confirm(`Are you sure you want to delete ${what}?\nThis can't be undone.`)) return;
+  if(!(await askConfirm("Are you sure you want to delete?", `This deletes ${what}. It can't be undone.`))) return;
   busy(btn, async()=>{
     if(SHARED) await sheetPost("delete", {sheet, id});
     if(sheet==="Logs") state.logs = state.logs.filter(l=>l.id!==id);
@@ -1024,7 +1047,7 @@ function deleteItem(btn, sheet, id){
    ===================================================================== */
 function renderKit(){
   $("kit-cards").innerHTML = beds().map(b=>{ const s=bedStatus(b.name);
-    return `<div class="card"><div class="status"><div><h3>${esc(b.name)}</h3><div class="muted">${esc(s.text.replace(b.name+": ",""))}</div></div><span class="lvl ${s.level}">${s.label}</span></div>${sparkline(s.rows)}</div>`; }).join("");
+    return `<div class="card"><div class="status"><div><h3>${esc(b.name)}</h3>${plantsIn(b.name)?`<div style="font-size:13px;margin:-2px 0 4px">🌿 ${esc(plantsIn(b.name))} ${sownTag(b.name)}</div>`:""}<div class="muted">${esc(s.text.replace(b.name+": ",""))}</div></div><span class="lvl ${s.level}">${s.label}</span></div>${sparkline(s.rows)}</div>`; }).join("");
 }
 function uploadKit(btn){
   const f=$("kit-file").files[0]; if(!f){ return; }
@@ -1062,8 +1085,8 @@ function exportData(){ const copy={...state, settings:{...state.settings, key:""
 function exportCSV(){ const q=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
   download("rewild-knowledge.csv", ["id,type,bed,status,author,date,text", ...state.knowledge.map(k=>[k.id,k.type,k.bed,k.status,k.author,k.date,k.text].map(q).join(","))].join("\n"), "text/csv"); }
 function importData(input){ const f=input.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=()=>{ try{ const s=JSON.parse(fr.result); const key=state.settings.key;
-  localStorage.setItem(KEY, JSON.stringify({...s, settings:{...s.settings, key}})); load(); store(); fillSettings(); refresh(); $("s-msg").textContent="Imported ✓"; }catch(e){ alert("Not a valid backup file."); } }; fr.readAsText(f); }
-function resetAll(){ if(!confirm("Replace everything in this browser with the example data?")) return; const s=state.settings; state=freshState(); state.settings={...s, prompt:state.settings.prompt}; store(); fillSettings(); refresh(); }
+  localStorage.setItem(KEY, JSON.stringify({...s, settings:{...s.settings, key}})); load(); store(); fillSettings(); refresh(); $("s-msg").textContent="Imported ✓"; }catch(e){ $("s-msg").textContent="That is not a valid backup file."; } }; fr.readAsText(f); }
+async function resetAll(){ if(!(await askConfirm("Reset to example data?", "This replaces everything stored in this browser with the example data.", "Reset"))) return; const s=state.settings; state=freshState(); state.settings={...s, prompt:state.settings.prompt}; store(); fillSettings(); refresh(); }
 
 /* =====================================================================
    UI plumbing
@@ -1089,7 +1112,7 @@ function refresh(){
 }
 function updateBedStatus(){ const bed=$("q-bed").value, s=bedStatus(bed), p=plantsIn(bed);
   $("q-bedstatus").innerHTML=`<span class="lvl ${s.level}" style="font-size:12px;padding:2px 8px;border-radius:99px">${s.label}</span> ${esc(s.text)}`
-    + `<div style="margin-top:6px">🌿 ${p ? "Growing here: "+esc(p) : '<span class="muted">What grows here isn\'t filled in yet (Menu ☰ → Knowledge &amp; beds).</span>'}</div>`; }
+    + `<div style="margin-top:6px">🌿 ${p ? "Growing here: "+esc(p)+" "+sownTag(bed) : '<span class="muted">What grows here isn\'t filled in yet (Menu ☰ → Knowledge &amp; beds).</span>'}</div>`; }
 $("s-provider").addEventListener("change", providerFields);
 
 load(); initDataCard(); refresh(); pull(true); loadWeather();
