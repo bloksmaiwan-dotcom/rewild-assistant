@@ -51,6 +51,8 @@ textarea{min-height:80px;resize:vertical}
 .status .lvl{font-weight:700;font-size:13px;padding:3px 9px;border-radius:99px;white-space:nowrap}
 .lvl.dry{background:var(--amber-soft);color:var(--amber)} .lvl.ok{background:var(--green-soft);color:var(--green)} .lvl.wet{background:var(--blue-soft);color:var(--blue)} .lvl.none{background:#ece8df;color:var(--muted)}
 .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.conf{flex-shrink:0;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;border:1px solid #cfc9bc;color:var(--ink);background:#fff;white-space:nowrap}
+.head-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .info-btn{flex-shrink:0;width:28px;height:28px;border-radius:50%;border:1px solid #cfc9bc;background:#fff;color:var(--muted);font:600 14px/1 Georgia,serif;font-style:italic;cursor:pointer}
 .info-btn[aria-expanded="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
 .info{margin-top:10px;padding:10px 12px;background:#f3f1ec;border-radius:8px;font-size:13px}
@@ -684,6 +686,12 @@ function readPhoto(){
 async function ask(){
   const bed=$("q-bed").value, q=$("q-text").value.trim();
   if(!q){ $("q-text").focus(); return; }
+  if(isHealthQuestion(q)){   // health rule: the AI is not called at all
+    lastAsk = null; $("manual").classList.add("hidden");
+    $("result").innerHTML = `<div class="card notice" role="alert" style="font-size:15px">${esc(HEALTH_MESSAGE)}</div>`;
+    if(typeof setAskButton === "function") setAskButton();
+    return;
+  }
   const photo = await readPhoto();
   await loadWeather();
   const system = state.settings.prompt, user = buildUserMessage(bed, q, !!photo);
@@ -722,6 +730,64 @@ function toggleInfo(btn){
   const open = panel.classList.toggle("hidden") === false;
   btn.setAttribute("aria-expanded", open);
 }
+/* =====================================================================
+   SAFEGUARDS IN CODE (not left to the AI)
+   ===================================================================== */
+// 2. Health rule: questions about eating or the safety of produce are never sent to the AI.
+const HEALTH_WORDS = /\b(eat|eats|eating|eaten|ate|edible|inedible|safe|safely|safety|unsafe|consume|consumes|consumed|consuming|consumption|eten|eet|opeten|eetbaar|veilig|consumeren)\b/i;
+const HEALTH_MESSAGE = "The soil on this site may be contaminated, so the assistant does not advise on eating produce. Please ask a founder.";
+function isHealthQuestion(q){ return HEALTH_WORDS.test(q); }
+
+// 3. Rewilding-zone rule check: options that water or clear dead vegetation are removed.
+function isRewildingBed(bed){ return /rewild/i.test(bed) || /rewild/i.test(bedType(bed)); }
+const NEGATED = /\b(don'?t|do not|never|avoid|no need to|not|without|stop|instead of)\b[^.;]{0,30}$/i;
+function mentions(text, re){ // true when the pattern occurs and is not negated just before it ("don't water")
+  const g = new RegExp(re.source, "gi"); let m;
+  while((m = g.exec(text))){ if(!NEGATED.test(text.slice(0, m.index))) return true; }
+  return false;
+}
+const WATERING = /\b(water|watering|watered|irrigate|irrigating|irrigation|sprinkle|sprinkler|hose)\b/;
+const CLEARING_DEAD = /\b(clear|clearing|clean|cleaning|remove|removing|cut|cutting|mow|mowing|rake|raking|tidy|tidying|strim|pull)\b[^.;]{0,35}\b(dead|dried|withered|brown)\b/;
+function breaksRewildingRules(o){
+  const t = String(o.action||"");
+  if(mentions(t, WATERING)) return "watering";
+  if(mentions(t, CLEARING_DEAD)) return "clearing dead vegetation";
+  return "";
+}
+
+// 1. Confidence label, computed from the sources the option cites.
+//    Independent sources: each person counts once (knowledge author, or who rated earlier advice),
+//    the sensor once, the weather forecast once. General knowledge doesn't count.
+function sensorAgeDays(bed){
+  const rows = state.sensor.filter(r=>r.bed===bed);
+  if(!rows.length) return Infinity;
+  return (now() - Math.max(...rows.map(r=>+r.t))) / DAY;
+}
+function confidenceFor(o, bed){
+  const sources = (Array.isArray(o.sources) ? o.sources : (o.sources ? [o.sources] : [])).map(s=>String(s).trim().toUpperCase());
+  const origins = new Map();   // origin key -> readable name
+  sources.forEach(id=>{
+    if(id==="SENSOR") origins.set("sensor", "kit sensor");
+    else if(id==="WEATHER") origins.set("weather", "weather forecast");
+    else if(/^K\d+$/.test(id)){ const k = state.knowledge.find(k=>k.id===id);
+      if(k){ const who = String(k.author||"unknown").trim(); origins.set("person:"+who.toLowerCase(), who); } }
+    else if(/^A\d+$/.test(id)){ const a = state.advice.find(a=>a.id===id);
+      if(a){ const who = String(a.ratedBy||"").trim(); origins.set(who ? "person:"+who.toLowerCase() : "advice:"+id, who || "rated advice "+id); } }
+  });
+  const n = origins.size;
+  const names = [...origins.values()].join(", ");
+  const generalOnly = String(o.basis||"").toLowerCase().startsWith("general") || n===0;
+  if(generalOnly) return {level:"Low", why:"Based only on general knowledge, not on knowledge or data from this farm."};
+  let step = n>=3 ? 2 : n===2 ? 1 : 0;
+  let why = `${n} independent source${n===1?"":"s"}: ${names}.`;
+  const age = sensorAgeDays(bed);
+  if(sources.includes("SENSOR") && age > 7){
+    step = Math.max(0, step-1);
+    why += ` Lowered one step: the sensor data ${age===Infinity ? "is missing for this bed" : `is ${Math.round(age)} days old`}.`;
+  }
+  return {level:["Low","Medium","High"][step], why};
+}
+
 function showResult(raw){
   const a = parseAnswer(raw); lastAsk.raw=raw; lastAsk.answer=a;
   let html="";
@@ -730,18 +796,27 @@ function showResult(raw){
   } else {
     a.options = a.options.filter(o=>o && o.action);
     if(a.cutOff) html += `<div class="notice">The AI's answer was cut off before the end. Everything that arrived is shown below.</div>`;
+    // rule check for the rewilding zone (removes options, then explains)
+    const removed = [];
+    if(isRewildingBed(lastAsk.bed)){
+      a.options = a.options.filter(o=>{ const why = breaksRewildingRules(o); if(why){ removed.push({action:o.action, why}); return false; } return true; });
+    }
+    a.removed = removed;
+    a.options.forEach(o=>{ o.conf = confidenceFor(o, lastAsk.bed); });
     html += `<div class="card"><div class="card-head"><h3 style="margin:0">What's likely going on</h3>${a.confidence?infoButton():""}</div>
       <p style="margin:8px 0 0">${esc(a.summary||"")}</p>
       <div class="info hidden"><p>How sure the AI is: <b>${esc(a.confidence||"")}</b></p></div></div>`;
     html += `<h3 style="margin:16px 0 8px">Options, you decide</h3>`;
+    if(removed.length) html += `<div class="notice">${removed.length} option${removed.length==1?" was":"s were"} removed because ${removed.length==1?"it":"they"} recommended ${[...new Set(removed.map(r=>r.why))].join(" or ")}, which conflicts with Rewild's rules for the rewilding zone.${a.options.length?"":" No options are left; please ask a founder or an experienced farmer."}</div>`;
     a.options.forEach((o,i)=>{
       const general = (o.basis||"").toLowerCase().startsWith("general");
       const sources = Array.isArray(o.sources) ? o.sources : (o.sources ? [o.sources] : []);
       html += `<div class="card">
-        <div class="card-head"><h3 style="margin:0">${i+1}. ${esc(o.action||"")}</h3>${infoButton()}</div>
+        <div class="card-head"><h3 style="margin:0">${i+1}. ${esc(o.action||"")}</h3><div class="head-right"><span class="conf" title="Confidence, counted from the sources">${o.conf.level}</span>${infoButton()}</div></div>
         <p style="margin:8px 0 0"><b>Why:</b> ${esc(o.why||"")}</p>
         <div class="info hidden">
           <p><b>Based on:</b> ${general ? "general knowledge, not yet tested on this plot." : "local knowledge from this farm."}</p>
+          <p><b>Confidence ${o.conf.level}:</b> ${esc(o.conf.why)}</p>
           ${sources.length ? `<b>Sources:</b><ul>${sources.map(sourceItem).join("")}</ul>` : "<p>No sources given.</p>"}
         </div></div>`;
     });
@@ -773,7 +848,7 @@ function modelLabel(){ const s=state.settings; return aiReady() ? `${s.provider}
 // Saves the question, the full prompt and the answer (Advice tab in the sheet).
 async function saveAdvice(raw, a){
   const rec = {date:today(), bed:lastAsk.bed, author:"", question:lastAsk.question,
-    summary: a ? (a.summary||"") : "", options: a ? a.options.map((o,i)=>`${i+1}. ${o.action}`).join(" | ") : String(raw).slice(0,300),
+    summary: a ? (a.summary||"") : "", options: a ? a.options.map((o,i)=>`${i+1}. ${o.action}${o.conf?` [confidence: ${o.conf.level}]`:""}`).join(" | ") + ((a.removed||[]).length ? ` | removed by rewilding rule check: ${a.removed.map(r=>r.action).join("; ")}` : "") : String(raw).slice(0,300),
     model: modelLabel(), prompt: lastAsk.user, answer: raw, system: lastAsk.system};
   try{
     let saved;
