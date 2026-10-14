@@ -20,28 +20,7 @@ header h1 span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .logo{height:34px;width:auto;max-width:110px;object-fit:contain;background:#fff;border-radius:8px;padding:3px 5px;flex-shrink:0}
 header{gap:8px}
 header button{background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:8px;padding:4px 10px;font-size:13px}
-main{position:relative;z-index:1;max-width:680px;margin:0 auto;padding:16px 16px 96px}
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:5;background:#fff;border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
-.bottom-nav button{flex:1;border:0;background:none;padding:12px 2px 14px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;white-space:nowrap}
-.bottom-nav button.on{color:var(--green);font-weight:700;box-shadow:inset 0 3px 0 var(--green)}
-.map-card{padding:8px}
-.map-card img{display:block;width:100%;height:auto;border-radius:8px;cursor:zoom-in}
-.trash{flex-shrink:0;border:0;background:none;font-size:17px;line-height:1;padding:4px 6px;border-radius:6px;cursor:pointer;opacity:.7}
-.trash:hover{opacity:1;background:var(--red-soft)}
-.item-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-.filters{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
-.filters select{width:auto;flex:1;min-width:130px}
-.modal-bg{position:fixed;inset:0;z-index:50;background:rgba(31,42,31,.45);display:flex;align-items:center;justify-content:center;padding:16px}
-.modal{background:#fff;border-radius:14px;padding:18px;max-width:380px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.25)}
-.modal h3{font-size:17px;margin:0 0 6px} .modal p{margin:0 0 16px;color:var(--muted)}
-.modal .row{justify-content:flex-end}
-.btn.danger{background:var(--red)}
-.sown{font-size:12px;color:var(--muted);font-weight:400;white-space:nowrap}
-.add-bed{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
-.add-bed input{flex:1}
-.flash{animation:flash 1.6s ease-out}
-.task-meta{font-size:12px;color:var(--muted);margin:2px 0 0}
-@keyframes flash{0%{box-shadow:0 0 0 3px var(--green)}100%{box-shadow:0 0 0 0 transparent}}
+main{position:relative;z-index:1;max-width:680px;margin:0 auto;padding:16px 16px 48px}
 .menu-btn{font-size:20px !important;line-height:1;padding:4px 10px !important}
 .menu{position:fixed;top:58px;right:12px;z-index:20;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.14);min-width:210px;padding:6px}
 .menu button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;font:inherit;padding:11px 12px;border-radius:8px;color:var(--ink);cursor:pointer}
@@ -49,7 +28,7 @@ main{position:relative;z-index:1;max-width:680px;margin:0 auto;padding:16px 16px
 .menu hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
 .back{border:0;background:none;color:var(--green);font:inherit;font-weight:600;padding:4px 0;margin-bottom:6px;cursor:pointer}
 .ask-card h2{font-size:22px;margin:2px 0 6px}
-.ask-card textarea{min-height:0;height:auto;font-size:17px;resize:none;overflow:hidden;line-height:1.4}
+.ask-card textarea{min-height:150px;font-size:17px}
 .ask-card select{font-size:16px}
 .btn.big{width:100%;padding:14px;font-size:17px;margin-top:14px}
 .rate-row{display:flex;gap:10px;margin-top:8px}
@@ -98,11 +77,10 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 <header><h1 onclick="show('ask')" style="cursor:pointer"><img class="logo" src="rewildlogo.png" alt="Rewild Farming logo" onerror="this.outerHTML='🌱'"><span>Rewild Farming Assistant</span></h1><div style="display:flex;align-items:center;flex-shrink:0"><button id="sync" class="sync hidden" onclick="pull(true)" title="Tap to refresh shared data"></button><button id="menu-btn" class="menu-btn" onclick="toggleMenu(event)" aria-label="Menu" aria-expanded="false" aria-controls="menu">☰</button></div></header>
 <div id="menu" class="menu hidden" role="menu">
   <button data-v="ask" onclick="show('ask')">💬 Ask</button>
-  <button data-v="plan" onclick="show('plan')">📋 Recommendations</button>
-  <button data-v="log" onclick="show('log')">✏️ Log</button>
   <hr>
   <button data-v="kit" onclick="show('kit')">📈 Kit data</button>
-  <button data-v="kb" onclick="show('kb')">📚 Knowledge &amp; beds</button>
+  <button data-v="kb" onclick="show('kb')">📚 Knowledge</button>
+  <button data-v="log" onclick="show('log')">✏️ Log</button>
   <button data-v="advice" onclick="show('advice')">⭐ Advice history</button>
   <hr>
   <button data-v="settings" onclick="show('settings')">⚙ Settings</button>
@@ -111,22 +89,20 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 
 <!-- ============ ASK ============ -->
 <section id="v-ask">
-  <div class="card map-card" id="map-card">
-    <img id="map-img" src="layoutFarm.png" alt="Map of the farm beds" onclick="window.open(this.src,'_blank')" onerror="if(!this.dataset.r){this.dataset.r='1';var i=this;setTimeout(function(){i.src='layoutFarm.png?t='+Date.now();},1500);}else{this.style.display='none';document.getElementById('map-msg').classList.remove('hidden');}">
-    <div id="map-msg" class="muted hidden" style="padding:6px 4px">The farm map (layoutFarm.png) could not be loaded. Check that the file is a PNG or JPG image and sits next to index.html.</div>
-  </div>
   <div class="card ask-card">
     <h2>What do you see in the garden?</h2>
     <label for="q-bed">Where?</label>
     <select id="q-bed"></select>
     <label for="q-text">Describe it in your own words</label>
-    <textarea id="q-text" rows="2" placeholder="e.g. The kale is turning yellow and the bottom leaves are drooping"></textarea>
+    <textarea id="q-text" placeholder="e.g. The kale is turning yellow and the bottom leaves are drooping"></textarea>
     <label for="q-photo">Photo (optional)</label>
     <input id="q-photo" type="file" accept="image/*">
     <div id="q-bedstatus" class="srcbox"></div>
-    <button class="btn big" id="q-go" onclick="askOrNext()">Get advice</button>
+    <button class="btn big" id="q-go" onclick="ask()">Get advice</button>
     <div id="q-mode" class="muted" style="margin-top:6px;text-align:center"></div>
   </div>
+  <div class="card"><h3>Weather next 7 days</h3><div class="wx-box"></div></div>
+
   <!-- manual (copy/paste) mode -->
   <div class="card hidden" id="manual">
     <h3>Manual AI mode</h3>
@@ -139,27 +115,6 @@ svg.spark{width:100%;height:40px;margin-top:6px}
   </div>
 
   <div id="result"></div>
-  <div class="card"><h3>Weather next 7 days</h3><div class="wx-box"></div></div>
-</section>
-
-<!-- ============ RECOMMENDATIONS ============ -->
-<section id="v-plan" class="hidden">
-  <h2>Recommendations for today</h2>
-  <div class="card">
-    <p class="muted" style="margin-top:0">The assistant looks at all beds together: kit data, what grows where, the weather, community knowledge, recent logs and rated advice. It suggests what to do today.</p>
-    <button class="btn big" id="plan-go" onclick="makePlan()">Give me recommendations</button>
-    <div id="plan-mode" class="muted" style="margin-top:6px;text-align:center"></div>
-  </div>
-  <div class="card hidden" id="plan-manual">
-    <h3>Manual AI mode</h3>
-    <p class="muted">No API key set. Copy this prompt into ChatGPT, Claude or Gemini, then paste the answer below.</p>
-    <div class="row"><button class="btn small" onclick="copyText('plan-manual-prompt', this)">Copy prompt</button></div>
-    <details style="margin-top:8px"><summary>Show prompt</summary><pre id="plan-manual-prompt"></pre></details>
-    <label for="plan-manual-answer">Paste the AI's answer</label>
-    <textarea id="plan-manual-answer"></textarea>
-    <button class="btn" style="margin-top:8px" onclick="usePlanManual()">Show recommendations</button>
-  </div>
-  <div id="plan-result"></div>
 </section>
 
 <!-- ============ KIT DATA ============ -->
@@ -184,16 +139,10 @@ svg.spark{width:100%;height:40px;margin-top:6px}
   <h2>Community knowledge</h2>
   <div class="card">
     <h3>What grows where</h3>
-    <p class="muted">Keep this up to date when something is sown, planted or cleared. Every change is saved in the log with its date, and the AI uses it with every question.</p>
+    <p class="muted">Keep this up to date when something is planted or cleared. The AI uses it with every question.</p>
     <div id="plant-list"></div>
-    <div class="row">
-      <div style="flex:1;min-width:140px"><label for="plant-date">Date of the change</label><input id="plant-date" type="date"></div>
-      <div style="flex:1;min-width:140px"><label for="plant-author">Your name</label><input id="plant-author"></div>
-    </div>
     <button class="btn" style="margin-top:10px" onclick="savePlantings(this)">Save planting</button>
     <div id="plant-msg"></div>
-    <div class="add-bed"><input id="bed-name" placeholder="New bed, e.g. Bed 5" aria-label="Name of the new bed"><button class="btn" onclick="addBed(this)">＋ Add bed</button></div>
-    <div id="bed-msg"></div>
   </div>
   <div class="card">
     <h3>Add knowledge</h3>
@@ -217,6 +166,7 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 
 <!-- ============ LOG ============ -->
 <section id="v-log" class="hidden">
+  <button class="back" onclick="show('ask')">← Back to Ask</button>
   <h2>Quick log</h2>
   <div class="card">
     <p class="muted">Saw or did something in the garden? Log it in under a minute. It becomes knowledge others can learn from once an experienced farmer confirms it.</p>
@@ -226,13 +176,7 @@ svg.spark{width:100%;height:40px;margin-top:6px}
     <button class="btn" style="margin-top:10px" onclick="quickLog(this)">Log it</button>
     <div id="log-msg"></div>
   </div>
-  <div class="card"><h3>Logbook</h3>
-    <div class="filters">
-      <select id="log-f-bed" onchange="renderLogs()" aria-label="Filter by bed"></select>
-      <select id="log-f-time" onchange="renderLogs()" aria-label="Filter by year or month"></select>
-    </div>
-    <div id="log-count" class="muted"></div><div id="log-list-msg"></div><div id="log-list"></div>
-  </div>
+  <div class="card"><h3>Recent logs</h3><div id="log-list"></div></div>
 </section>
 
 <!-- ============ ADVICE HISTORY ============ -->
@@ -267,6 +211,11 @@ svg.spark{width:100%;height:40px;margin-top:6px}
     <div class="row" style="margin-top:8px"><button class="btn small ghost" onclick="resetPrompt()">Reset to default</button></div>
   </div>
   <div class="card">
+    <h3>Demo</h3>
+    <label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" id="s-demo" style="width:auto"> Pretend today is the day after the last kit reading</label>
+    <p class="muted">Useful with old or example data, so readings don't all show as stale.</p>
+  </div>
+  <div class="card">
     <h3>Data</h3>
     <p class="muted" id="data-note"></p>
     <div class="row"><button class="btn small" onclick="exportData()">Download backup</button>
@@ -278,15 +227,6 @@ svg.spark{width:100%;height:40px;margin-top:6px}
 </section>
 
 </main>
-<div id="modal" class="modal-bg hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-  <div class="modal"><h3 id="modal-title"></h3><p id="modal-text"></p>
-    <div class="row"><button class="btn ghost" id="modal-no">Cancel</button><button class="btn danger" id="modal-yes">Delete</button></div></div>
-</div>
-<nav class="bottom-nav" aria-label="Main">
-  <button data-v="ask" class="on" onclick="show('ask')">💬 Ask</button>
-  <button data-v="plan" onclick="show('plan')">📋 Recommendations</button>
-  <button data-v="log" onclick="show('log')">✏️ Log</button>
-</nav>
 
 <script>
 /* =====================================================================
@@ -297,10 +237,13 @@ const CONFIG = {
   // Leave empty ("") and everything is stored only in this browser.
   sheetUrl: "https://script.google.com/macros/s/AKfycbz_xGaC5uArHGLkrt5YMCTuzBvOuIK_ZGq381mMawTJk0OkNwI4zQ1idYXmeNJEp65R/exec",
   // Replace with Rewild's real layout. "type" is passed to the AI as context.
-  // What grows in each bed is edited in the app itself (Menu ☰ → Knowledge &amp; beds).
+  // What grows in each bed is edited in the app itself (Menu ☰ → Knowledge → What grows where).
   beds: [
-    {name:"Rewilding zone", type:"rewilding area with native species, low intervention: no watering, no fertiliser, no weeding except invasive species"},
-    ...[1,2,3,4,5,6,7,8,9].map(n=>({name:"Bed "+n, type:"vegetable raised bed"}))
+    {name:"Bed 1", type:"vegetable raised bed"},
+    {name:"Bed 2", type:"vegetable raised bed"},
+    {name:"Bed 3", type:"vegetable raised bed"},
+    {name:"Bed 4", type:"vegetable raised bed"},
+    {name:"Rewilding zone", type:"rewilding area with native species, low intervention: no watering, no fertiliser, no weeding except invasive species"}
   ],
   // Location for the weather forecast (Open-Meteo, free, no key needed).
   location: {name:"Eindhoven", lat:51.44, lon:5.48},
@@ -417,9 +360,9 @@ const TYPE_TAG = {farmer:"", member:"blue", rule:"red", general:"grey"};
 
 function store(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 function freshState(){
-  return {knowledge: SHARED ? [] : SEED_KNOWLEDGE.map(k=>({...k})), sensor: SHARED ? [] : sampleSensorRows(), logs: [],
+  return {knowledge: SHARED ? [] : SEED_KNOWLEDGE.map(k=>({...k})), sensor: SHARED ? [] : parseSensorCSV(SAMPLE_CSV, null).rows, logs: [],
     plantings: {}, advice: [],
-    settings: {provider:"manual", key:"", model:"", prompt: DEFAULT_PROMPT, promptV: PROMPT_VERSION, promptCustom:false}};
+    settings: {provider:"manual", key:"", model:"", prompt: DEFAULT_PROMPT, promptV: PROMPT_VERSION, promptCustom:false, demo:true}};
 }
 function load(){
   let s=null; try{ s = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
@@ -427,6 +370,7 @@ function load(){
   state.sensor.forEach(r=>r.t=new Date(r.t));
   state.plantings = state.plantings || {};
   state.advice = state.advice || [];
+  CONFIG.beds.forEach(b=>{ if(!state.plantings[b.name]) state.plantings[b.name] = {plants:"", updated:""}; });
   // A newer default prompt replaces the saved one, unless your group edited it in Settings.
   if(state.settings.promptV !== PROMPT_VERSION && !state.settings.promptCustom){
     state.settings.prompt = DEFAULT_PROMPT; state.settings.promptV = PROMPT_VERSION; store();
@@ -437,21 +381,7 @@ function aiReady(){
   return (s.provider==="anthropic"||s.provider==="openai") && !!s.key;
 }
 function plantsIn(bed){ const p=(state.plantings[bed]||{}).plants; return p && p.trim() ? p.trim() : ""; }
-// Today's date on this device (local time, not UTC).
-function today(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-// The example kit readings, moved by whole days so the last one falls within the past 24 hours
-// (keeps the demo data recent and the measuring times the same).
-function sampleSensorRows(){
-  const rows = parseSensorCSV(SAMPLE_CSV, null).rows;
-  const shift = Math.floor((Date.now() - Math.max(...rows.map(r=>+r.t))) / DAY) * DAY;
-  rows.forEach(r=>{ r.t = new Date(+r.t + shift); });
-  return rows;
-}
-const isGeneral = b => b==="All" || b==="General";
-// "2026-09-20" -> "20 Sep 2026"
-function niceDate(s){ const d=new Date(String(s)+"T12:00:00"); return isNaN(d) ? String(s||"") : `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)} ${d.getFullYear()}`; }
-function sownTag(bed){ const p=state.plantings[bed]||{}; return p.updated && plantsIn(bed) ? `<span class="sown">· sown ${esc(niceDate(p.updated))}</span>` : ""; }
-const bedLabel = b => isGeneral(b) ? "General" : b;
+function today(){ return new Date().toISOString().slice(0,10); }
 
 /* =====================================================================
    WEATHER FORECAST (Open-Meteo). Cached for an hour in this browser.
@@ -538,7 +468,8 @@ function applyRemote(j){
   state.knowledge = j.knowledge.map(k=>({...k, type:(k.type||"member").toLowerCase().trim(), status:(k.status||"pending").toLowerCase().trim(), bed:k.bed||"All"}));
   state.logs = j.logs.slice().reverse();
   if(Array.isArray(j.advice)) state.advice = j.advice;
-  state.plantings = {}; j.plantings.forEach(p=>{ if(p.bed) state.plantings[p.bed] = {plants:p.plants, updated:p.updated, type:p.type||""}; });
+  state.plantings = {}; j.plantings.forEach(p=>{ state.plantings[p.bed] = {plants:p.plants, updated:p.updated}; });
+  CONFIG.beds.forEach(b=>{ if(!state.plantings[b.name]) state.plantings[b.name] = {plants:"", updated:""}; });
   state.sensor = j.sensor.map(r=>({t:new Date(r.t), bed:r.bed, soil:num(r.soil), temp:num(r.temp), hum:num(r.hum), light:num(r.light)})).filter(r=>!isNaN(r.t));
   store();
 }
@@ -556,7 +487,7 @@ async function pull(force){
 }
 async function seedSheet(btn){
   await busy(btn, async()=>{
-    const j = await sheetPost("seed", {knowledge: SEED_KNOWLEDGE, sensor: sampleSensorRows().map(sensorRow)});
+    const j = await sheetPost("seed", {knowledge: SEED_KNOWLEDGE, sensor: parseSensorCSV(SAMPLE_CSV, null).rows.map(sensorRow)});
     await pull(true);
     $("s-msg").textContent = j.added ? `Added ${j.added} example rows ✓` : "The sheet already has data, nothing added.";
   }, "s-msg");
@@ -596,7 +527,10 @@ function parseSensorCSV(text, fallbackBed){
   return {rows, skipped};
 }
 const DAY=864e5;
-function now(){ return new Date(); }
+function now(){
+  if(state.settings.demo && state.sensor.length){ return new Date(Math.max(...state.sensor.map(r=>+r.t)) + DAY/2); }
+  return new Date();
+}
 function ageText(days){ if(days<1) return Math.max(1,Math.round(days*24))+" hours ago"; const d=Math.round(days); return d+(d==1?" day ago":" days ago"); }
 function bedStatus(bed){
   const rows = state.sensor.filter(r=>r.bed===bed).sort((a,b)=>a.t-b.t);
@@ -632,15 +566,9 @@ function sparkline(rows){
 /* =====================================================================
    PROMPT BUILDING (this is what the AI receives)
    ===================================================================== */
-// All beds: the standard ones from CONFIG plus beds added in the app (stored with the planting register).
-function beds(){
-  const list = CONFIG.beds.map(b=>({name:b.name, type:(state.plantings[b.name]||{}).type || b.type}));
-  Object.keys(state.plantings).forEach(n=>{ if(n && !list.some(b=>b.name===n)) list.push({name:n, type:state.plantings[n].type || "vegetable raised bed"}); });
-  return list;
-}
-function bedType(name){ return (beds().find(b=>b.name===name)||{}).type || ""; }
+function bedType(name){ return (CONFIG.beds.find(b=>b.name===name)||{}).type||""; }
 function relevantKnowledge(bed, question){
-  let ks = state.knowledge.filter(k=>k.status!=="rejected" && (isGeneral(k.bed) || k.bed===bed));
+  let ks = state.knowledge.filter(k=>k.status!=="rejected" && (k.bed==="All" || k.bed===bed));
   if(ks.length > CONFIG.maxKnowledgeInPrompt){
     const words = new Set(question.toLowerCase().split(/\W+/).filter(w=>w.length>3));
     const score = k=>k.text.toLowerCase().split(/\W+/).filter(w=>words.has(w)).length + (k.type==="rule"?100:0) + (k.bed===bed?1:0);
@@ -659,11 +587,11 @@ function relevantFeedback(bed, question){
     .slice(0, CONFIG.maxFeedbackInPrompt).map(x=>x[1]);
 }
 function buildUserMessage(bed, question, hasPhoto){
-  const sensorLines = beds().map(b=>"- "+bedStatus(b.name).text).join("\n");
+  const sensorLines = CONFIG.beds.map(b=>"- "+bedStatus(b.name).text).join("\n");
   const kn = relevantKnowledge(bed, question).map(k=>
-    `[${k.id}] ${TYPE_LABEL[k.type]||k.type} | ${k.status==="validated"?"confirmed":"NOT YET CONFIRMED"} | applies to: ${isGeneral(k.bed)?"whole farm":k.bed} | ${k.text}`).join("\n");
-  const register = beds().map(b=>{ const p=state.plantings[b.name]||{};
-    return `- ${b.name}: ${plantsIn(b.name) || "not recorded"}${p.updated && plantsIn(b.name) ? " (sown/planted "+p.updated+")" : ""}`; }).join("\n");
+    `[${k.id}] ${(TYPE_LABEL[k.type]||k.type)} | ${k.status==="validated"?"confirmed":"NOT YET CONFIRMED"} | applies to: ${k.bed} | ${k.text}`).join("\n");
+  const register = CONFIG.beds.map(b=>{ const p=state.plantings[b.name]||{};
+    return `- ${b.name}: ${plantsIn(b.name) || "not recorded"}${p.updated && plantsIn(b.name) ? " (updated "+p.updated+")" : ""}`; }).join("\n");
   return `LOCATION: ${bed} (${bedType(bed)})
 GROWING HERE: ${plantsIn(bed) || "not recorded"}
 DATE: ${now().toISOString().slice(0,10)}
@@ -727,11 +655,10 @@ function closeJSON(s){
   while(stack.length) out += stack.pop()==="{" ? "}" : "]";
   return out;
 }
-function parseAnswer(text, listKey){
-  listKey = listKey || "options";
+function parseAnswer(text){
   const t = text.replace(/```(?:json)?/gi,"");
   const a=t.indexOf("{"); if(a<0) return null;
-  const ok = j => j && Array.isArray(j[listKey]) ? j : null;
+  const ok = j => j && Array.isArray(j.options) ? j : null;
   const b=t.lastIndexOf("}");
   if(b>a){ try{ const j=ok(JSON.parse(t.slice(a,b+1))); if(j) return j; }catch(e){} }
   try{ const j=ok(JSON.parse(closeJSON(t.slice(a).trim()))); if(j){ j.cutOff=true; return j; } }catch(e){}
@@ -771,12 +698,8 @@ async function ask(){
   const btn=$("q-go"); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Thinking…';
   try{ const raw = await callAI(system, user, photo); showResult(raw); }
   catch(e){ $("result").innerHTML=`<div class="card notice">The AI call failed: ${esc(String(e.message).replace(/\.$/,""))}. Check the connection in Settings, or switch to manual mode.</div>`; }
-  finally{ btn.disabled=false; setAskButton(); }
+  finally{ btn.disabled=false; btn.textContent="Get advice"; }
 }
-// After an answer the big button becomes "Next question"; it clears everything for a new question.
-function setAskButton(){ $("q-go").textContent = $("result").innerHTML.trim() ? "Next question" : "Get advice"; }
-function askOrNext(){ if($("result").innerHTML.trim()) nextQuestion(); else ask(); }
-function autoGrow(el){ el.style.height="auto"; el.style.height = el.scrollHeight + 2 + "px"; }
 function copyPrompt(){ navigator.clipboard?.writeText($("manual-prompt").textContent).then(()=>{$("copied").textContent="Copied ✓"; setTimeout(()=>$("copied").textContent="",2000);}); }
 function useManual(){ const raw=$("manual-answer").value.trim(); if(!raw) return; $("manual").classList.add("hidden"); showResult(raw); }
 
@@ -829,8 +752,7 @@ function showResult(raw){
     <label for="rate-text">What was good or wrong? (helps the assistant learn)</label><textarea id="rate-text" style="min-height:60px" placeholder="e.g. Mulching worked, but we don't have straw on site"></textarea>
     <label for="rate-author">Your name</label><input id="rate-author">
     <button class="btn" style="margin-top:10px" onclick="saveRating(this)">Save rating</button><div id="rate-msg"></div>
-    <div id="adv-saved" class="muted" style="margin-top:8px"></div></div>
-    <button class="btn big ghost" style="margin:0 0 12px" onclick="nextQuestion()">Ask next question</button>`;
+    <div id="adv-saved" class="muted" style="margin-top:8px"></div></div>`;
   html += `<details class="card"><summary>What the AI received (for checking)</summary><pre>${esc(lastAsk.user)}</pre></details>`;
   const opts = a ? a.options.map((o,i)=>`<option value="${i}">Option ${i+1}: ${esc(o.action.length>60 ? o.action.slice(0,57)+"…" : o.action)}</option>`).join("") : "";
   html += `<div class="card" id="followup"><h3>After you tried something: what happened?</h3>
@@ -844,7 +766,6 @@ function showResult(raw){
     <label>Your name</label><input id="f-author">
     <button class="btn" style="margin-top:10px" onclick="saveFollowup(this)">Save to logbook</button><div id="f-msg"></div></div>`;
   $("result").innerHTML = html;
-  setAskButton();
   $("result").scrollIntoView({behavior:"smooth"});
   lastAsk.saving = saveAdvice(raw, a);
 }
@@ -866,12 +787,6 @@ async function saveAdvice(raw, a){
     return null;
   }
 }
-// Clears the question and the answer so a new question can be asked (no reload needed).
-function nextQuestion(){
-  $("q-text").value=""; $("q-photo").value=""; $("result").innerHTML=""; $("manual").classList.add("hidden");
-  $("manual-answer").value=""; lastAsk=null; autoGrow($("q-text")); setAskButton();
-  show("ask"); $("q-text").focus();
-}
 function pickRating(btn){ btn.parentElement.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b===btn)); }
 function saveRating(btn){
   const picked = document.querySelector("#rate-card .rate-row button.on");
@@ -880,8 +795,7 @@ function saveRating(btn){
     const id = lastAsk.adviceId || await lastAsk.saving;
     if(!id) throw new Error("the advice itself wasn't saved");
     await rateAdvice(id, picked.dataset.r, $("rate-text").value.trim(), $("rate-author").value.trim()||"Anonymous");
-    $("rate-msg").innerHTML = `<div class="ok-msg">Thanks! Rating saved for ${id}. The assistant will use it for similar questions.</div>
-      <button class="btn big" style="margin-top:10px" onclick="nextQuestion()">Ask next question</button>`;
+    $("rate-msg").innerHTML = `<div class="ok-msg">Thanks! Rating saved for ${id}. The assistant will use it for similar questions.</div>`;
   }, "rate-msg");
 }
 async function rateAdvice(id, rating, feedback, ratedBy){
@@ -955,266 +869,44 @@ function renderKB(){
   const f=$("kb-filter").value;
   const list=[...state.knowledge].reverse().filter(k=>k.status!=="rejected" && (f==="all"||k.status===f));
   $("kb-list").innerHTML = list.map(k=>`<div class="kb">
-    <div class="item-head"><div><span class="tag ${TYPE_TAG[k.type]||""}">${esc(k.id)} · ${esc(TYPE_LABEL[k.type]||k.type)}</span><span class="tag grey">${esc(bedLabel(k.bed))}</span>
+    <div><span class="tag ${TYPE_TAG[k.type]}">${k.id} · ${(TYPE_LABEL[k.type]||k.type)}</span><span class="tag grey">${esc(k.bed)}</span>
     ${k.status==="validated"?'<span class="tag">✓ confirmed</span>':'<span class="tag amber">needs checking</span>'}</div>
-    <button class="trash" aria-label="Delete ${esc(k.id)}" title="Delete" onclick="deleteItem(this,'Knowledge','${esc(k.id)}')">🗑️</button></div>
     <div style="margin:6px 0">${esc(k.text)}</div><div class="muted">${esc(k.author)} · ${esc(k.date)}</div>
     ${k.status==="pending"?`<div class="row" style="margin-top:6px"><button class="btn small" onclick="setStatus(this,'${k.id}','validated')">Confirm (experienced farmer)</button><button class="btn small ghost" onclick="setStatus(this,'${k.id}','rejected')">Not correct</button></div>`:""}
   </div>`).join("") || '<p class="muted">Nothing here.</p>';
 }
 function renderPlantings(){
-  const bs = beds();
-  $("plant-list").innerHTML = bs.map((b,i)=>{ const p=state.plantings[b.name]||{};
-    return `<label for="plant-${i}">${esc(b.name)} ${sownTag(b.name)}</label>
-      <input id="plant-${i}" data-bed="${esc(b.name)}" value="${esc(p.plants||"")}" placeholder="${/rewild/i.test(b.type)?"e.g. native wildflowers, grasses":"e.g. kale, chard, leeks"}">`; }).join("");
-  if(!$("plant-date").value) $("plant-date").value = today();
-}
-// Local (no sheet) version of a planting-change log line; the sheet script writes the same.
-function plantingLog(r, before, author){
-  const n = Math.max(0, ...state.logs.map(l=>/^L\d+$/.test(l.id) ? parseInt(l.id.slice(1)) : 0)) + 1;
-  return {id:"L"+n, date:r.updated, author, bed:r.bed, kind:"planting",
-    text:`Planting changed: ${r.plants || "(empty)"}${before ? ` (was: ${before})` : ""}`};
-}
-async function writePlantings(rows, author){
-  if(SHARED){ const j = await sheetPost("plantings", {rows, author}); (j.logs||[]).forEach(l=>state.logs.unshift(l)); }
-  rows.forEach(r=>{
-    const before = state.plantings[r.bed] || {};
-    if(!SHARED && r.plants != null && r.plants !== (before.plants||"")) state.logs.unshift(plantingLog(r, before.plants, author));
-    state.plantings[r.bed] = {plants: r.plants != null ? r.plants : before.plants||"", updated: r.updated || before.updated || "", type: r.type || before.type || ""};
-  });
-  store();
+  $("plant-list").innerHTML = CONFIG.beds.map((b,i)=>{ const p=state.plantings[b.name]||{};
+    return `<label for="plant-${i}">${esc(b.name)}${p.updated?` <span class="muted">· updated ${esc(p.updated)}</span>`:""}</label>
+      <input id="plant-${i}" value="${esc(p.plants||"")}" placeholder="${b.name.toLowerCase().includes("rewild")?"e.g. native wildflowers, grasses":"e.g. kale, chard, leeks"}">`; }).join("");
 }
 function savePlantings(btn){
-  const date = $("plant-date").value || today(), author = $("plant-author").value.trim() || "Anonymous";
-  const rows = [...document.querySelectorAll("#plant-list input")]
-    .map(el=>({bed:el.dataset.bed, plants:el.value.trim(), updated:date}))
+  const rows = CONFIG.beds.map((b,i)=>({bed:b.name, plants:$("plant-"+i).value.trim(), updated:today()}))
     .filter(r=>r.plants !== ((state.plantings[r.bed]||{}).plants||""));
   busy(btn, async()=>{
-    if(rows.length) await writePlantings(rows, author);
-    renderPlantings(); updateBedStatus(); renderLogs();
-    $("plant-msg").innerHTML=`<div class="ok-msg">${rows.length?`Saved and logged (${rows.length} bed${rows.length==1?"":"s"} changed on ${esc(date)}).`:"Nothing changed."}</div>`;
+    if(SHARED && rows.length) await sheetPost("plantings", {rows});
+    rows.forEach(r=>{ state.plantings[r.bed] = {plants:r.plants, updated:r.updated}; });
+    store(); renderPlantings(); updateBedStatus();
+    $("plant-msg").innerHTML=`<div class="ok-msg">${rows.length?`Saved (${rows.length} bed${rows.length==1?"":"s"} changed).`:"Nothing changed."}</div>`;
   }, "plant-msg");
-}
-// Adds a bed by name only; what grows there is filled in afterwards in the list above.
-function addBed(btn){
-  const name=$("bed-name").value.trim();
-  if(!name){ $("bed-name").focus(); return; }
-  if(beds().some(b=>b.name.toLowerCase()===name.toLowerCase()) || isGeneral(name)){
-    $("bed-msg").innerHTML=`<div class="notice" style="margin-top:8px">There is already a bed called "${esc(name)}".</div>`; return; }
-  busy(btn, async()=>{
-    await writePlantings([{bed:name, updated:"", type:"growing bed"}], $("plant-author").value.trim()||"Anonymous");
-    $("bed-name").value=""; $("bed-msg").innerHTML="";
-    refresh();
-    const input = [...document.querySelectorAll("#plant-list input")].find(el=>el.dataset.bed===name);
-    if(input){ input.scrollIntoView({behavior:"smooth", block:"center"}); input.focus(); input.classList.add("flash"); }
-    $("plant-msg").innerHTML=`<div class="ok-msg">${esc(name)} added. Fill in what grows there and tap Save planting.</div>`;
-  }, "bed-msg");
 }
 function quickLog(btn){
   const text=$("log-text").value.trim(); if(!text) return;
   busy(btn, async()=>{
     const k = await addEntry({type:"member", bed:$("log-bed").value, text, author:$("log-author").value.trim()||"Anonymous"}, {kind:"quick"});
-    $("log-text").value=""; $("log-bed").value="General"; $("log-msg").innerHTML=`<div class="ok-msg">Logged as ${k.id}. Thanks!</div>`; renderLogs();
+    $("log-text").value=""; $("log-msg").innerHTML=`<div class="ok-msg">Logged as ${k.id}. Thanks!</div>`; renderLogs();
   }, "log-msg");
 }
-const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const LOG_ICON = {quick:"✏️", followup:"💬", planting:"🌱"};
-function fillSelect(id, options, keep){
-  const el=$(id), v=el.value;
-  el.innerHTML = options.map(([val,label])=>`<option value="${esc(val)}">${esc(label)}</option>`).join("");
-  if(keep && options.some(o=>o[0]===v)) el.value = v;
-}
 function renderLogs(){
-  // bed filter: everything, General, each bed
-  fillSelect("log-f-bed", [["all","All beds"],["General","General (whole farm)"], ...beds().map(b=>[b.name,b.name])], true);
-  // period filter: every year and month that has logs, newest first
-  const months = [...new Set(state.logs.map(l=>String(l.date||"").slice(0,7)).filter(m=>/^\d{4}-\d{2}$/.test(m)))].sort().reverse();
-  const years = [...new Set(months.map(m=>m.slice(0,4)))];
-  const periods = [["all","All time"]];
-  years.forEach(y=>{ periods.push(["y:"+y, "Year "+y]); months.filter(m=>m.startsWith(y)).forEach(m=>periods.push(["m:"+m, `${MONTHS[+m.slice(5)-1]} ${y}`])); });
-  fillSelect("log-f-time", periods, true);
-  const fb=$("log-f-bed").value, ft=$("log-f-time").value;
-  const list = state.logs
-    .filter(l => fb==="all" || (fb==="General" ? isGeneral(l.bed) : l.bed===fb))
-    .filter(l => ft==="all" || String(l.date||"").startsWith(ft.slice(2)))
-    .map((l,i)=>[l,i]).sort((a,b)=> String(b[0].date).localeCompare(String(a[0].date)) || a[1]-b[1]).map(x=>x[0]);
-  $("log-count").textContent = `${list.length} of ${state.logs.length} logs`;
-  $("log-list").innerHTML = list.map(l=>`<div class="kb"><div class="item-head"><div>
-      <span class="tag grey">${LOG_ICON[l.kind]||"✏️"} ${esc(bedLabel(l.bed))}</span><span class="muted">${esc(l.date)} · ${esc(l.author)}</span></div>
-      <button class="trash" aria-label="Delete log ${esc(l.id)}" title="Delete" onclick="deleteItem(this,'Logs','${esc(l.id)}')">🗑️</button></div>
-    <div style="margin-top:4px">${esc(l.text)}</div></div>`).join("") || '<p class="muted">No logs for this selection.</p>';
-}
-/* =====================================================================
-   RECOMMENDATIONS FOR TODAY: one AI call over all beds and all input.
-   ===================================================================== */
-const PLAN_PROMPT = `You are the Rewild Farming assistant for Rewild Farming, a community-run regenerative farm and rewilding project in Eindhoven (NL). Most volunteers have little farming experience.
-
-TASK
-Look at the whole farm and suggest what volunteers should do TODAY: 3 to 6 concrete tasks across the beds, most important first. Tasks can be: water, check, soil (e.g. mulch, compost, loosen), remove (weeds, invasive plants, pests, dead plants), sow or plant, harvest, protect (e.g. against frost or pests), observe or measure.
-
-RULES
-1. Every task names the bed (or "Whole farm") and is concrete enough for a beginner to do without help.
-2. Every task cites its sources by id: knowledge ids like K3, earlier advice like A2, log ids like L4, SENSOR, WEATHER, PLANTING for the planting register, GENERAL for your own general knowledge. Set "basis" to "general" when a task relies only on GENERAL.
-3. Rewild practice rules always win. In a rewilding area never suggest watering, fertilising or tidying.
-4. Use the weather forecast: don't suggest watering when rain is coming; protect tender plants when frost is forecast; plan around heavy rain.
-5. The sensor is one probe that measures in windows. Old or missing readings mean "check the soil by hand", not "water".
-6. Use the planting register (with sowing dates) and recent logs: don't repeat work that was just done; follow up on problems that were logged.
-7. Learn from FEEDBACK ON EARLIER ADVICE: build on advice rated good, don't repeat advice rated not good.
-8. Plain language, short sentences. Never invent knowledge entries, ids, sensor values or weather.
-
-LENGTH
-summary max 2 sentences; each task max 20 words; each why max 2 sentences.
-
-OUTPUT
-Reply with JSON only, no text before or after, no code fences:
-{
-  "summary": "the situation at the farm today in 1 or 2 sentences",
-  "tasks": [
-    {"task": "what to do", "bed": "Bed 3", "type": "water | check | soil | remove | sow | harvest | protect | observe | other", "why": "reason", "priority": "high | medium | low", "sources": ["SENSOR","K4"], "basis": "local or general"}
-  ],
-  "uncertainty": "what you are unsure about and what to check"
-}`;
-const TASK_ICON = {water:"💧", check:"👀", soil:"🪱", remove:"✂️", sow:"🌱", plant:"🌱", harvest:"🧺", protect:"🛡️", observe:"🔍", mulch:"🍂", other:"📝"};
-let lastPlan = null;
-
-function buildPlanMessage(){
-  const L = CONFIG.location;
-  const register = beds().map(b=>{ const p=state.plantings[b.name]||{};
-    return `- ${b.name} (${b.type}): ${plantsIn(b.name) || "not recorded"}${p.updated && plantsIn(b.name) ? ", sown/planted "+p.updated : ""}`; }).join("\n");
-  // all knowledge; rules first, then confirmed, then newest
-  const rank = k => (k.type==="rule"?0:k.status==="validated"?1:2);
-  const kn = state.knowledge.filter(k=>k.status!=="rejected")
-    .slice().sort((a,b)=> rank(a)-rank(b) || String(b.date).localeCompare(String(a.date))).slice(0, CONFIG.maxKnowledgeInPrompt)
-    .map(k=>`[${k.id}] ${TYPE_LABEL[k.type]||k.type} | ${k.status==="validated"?"confirmed":"NOT YET CONFIRMED"} | applies to: ${isGeneral(k.bed)?"whole farm":k.bed} | ${k.text}`).join("\n");
-  const since = new Date(Date.now() - 14*DAY).toISOString().slice(0,10);
-  const logs = state.logs.filter(l=>String(l.date)>=since).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,20)
-    .map(l=>`[${l.id}] ${l.date}, ${bedLabel(l.bed)}: ${l.text}`).join("\n");
-  const feedback = state.advice.filter(a=>a.rating).slice(-8)
-    .map(a=>`[${a.id}] ${a.date}, ${a.bed}: "${a.question}" → advice: ${a.options} → rated ${String(a.rating).toUpperCase()}${a.feedback?`: "${a.feedback}"`:""}`).join("\n");
-  return `DATE: ${today()}
-
-BEDS AND WHAT GROWS THERE [PLANTING]:
-${register}
-
-SENSOR SUMMARY [SENSOR]:
-${beds().map(b=>"- "+bedStatus(b.name).text).join("\n")}
-
-WEATHER FORECAST [WEATHER] (${L.name}, next 7 days):
-${weatherText()}
-
-COMMUNITY KNOWLEDGE:
-${kn || "(none yet)"}
-
-RECENT LOGS (last 14 days):
-${logs || "(none)"}
-
-FEEDBACK ON EARLIER ADVICE (rated by members):
-${feedback || "(none yet)"}`;
-}
-async function makePlan(){
-  await loadWeather();
-  const user = buildPlanMessage();
-  lastPlan = {system: PLAN_PROMPT, user};
-  $("plan-result").innerHTML = "";
-  if(!aiReady()){
-    $("plan-manual-prompt").textContent = PLAN_PROMPT + "\n\n=====\n\n" + user;
-    $("plan-manual-answer").value = ""; $("plan-manual").classList.remove("hidden");
-    $("plan-manual").scrollIntoView({behavior:"smooth"}); return;
-  }
-  $("plan-manual").classList.add("hidden");
-  const btn=$("plan-go"); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Looking at the whole farm…';
-  try{ showPlan(await callAI(PLAN_PROMPT, user, null)); }
-  catch(e){ $("plan-result").innerHTML=`<div class="card notice">The AI call failed: ${esc(String(e.message).replace(/\.$/,""))}. Check the connection in Settings, or switch to manual mode.</div>`; }
-  finally{ btn.disabled=false; btn.textContent="Give me new recommendations"; }
-}
-function usePlanManual(){ const raw=$("plan-manual-answer").value.trim(); if(!raw) return; $("plan-manual").classList.add("hidden"); showPlan(raw); }
-function copyText(id, btn){ navigator.clipboard?.writeText($(id).textContent).then(()=>{ const t=btn.textContent; btn.textContent="Copied ✓"; setTimeout(()=>btn.textContent=t,2000); }); }
-function showPlan(raw){
-  const p = parseAnswer(raw, "tasks");
-  let html = "";
-  if(!p){
-    html = `<div class="card"><div class="notice">The answer wasn't in the expected format, so it's shown as plain text.</div><div style="white-space:pre-wrap">${esc(raw)}</div></div>`;
-  } else {
-    const order = {high:0, medium:1, low:2};
-    p.tasks = p.tasks.filter(t=>t && t.task).sort((a,b)=>(order[String(a.priority).toLowerCase()]??1)-(order[String(b.priority).toLowerCase()]??1));
-    if(p.cutOff) html += `<div class="notice">The AI's answer was cut off before the end. Everything that arrived is shown below.</div>`;
-    html += `<div class="card"><h3>Today at the farm</h3><p style="margin:6px 0 0">${esc(p.summary||"")}</p>
-      <div class="task-meta">${esc(niceDate(today()))} · ${esc(modelLabel())}</div></div>`;
-    p.tasks.forEach((t,i)=>{
-      const type = String(t.type||"other").toLowerCase().split(/[^a-z]/)[0];
-      const general = String(t.basis||"").toLowerCase().startsWith("general");
-      const sources = Array.isArray(t.sources) ? t.sources : (t.sources ? [t.sources] : []);
-      html += `<div class="card">
-        <div class="card-head"><div><h3 style="margin:0">${i+1}. ${TASK_ICON[type]||"📝"} ${esc(t.task)}</h3><div class="task-meta">${esc(t.bed||"Whole farm")}</div></div>${infoButton()}</div>
-        <p style="margin:8px 0 0"><b>Why:</b> ${esc(t.why||"")}</p>
-        <div class="info hidden">
-          <p><b>Based on:</b> ${general ? "general knowledge, not yet tested on this plot." : "local knowledge from this farm."} Priority: ${esc(t.priority||"medium")}.</p>
-          ${sources.length ? `<b>Sources:</b><ul>${sources.map(planSourceItem).join("")}</ul>` : "<p>No sources given.</p>"}
-        </div></div>`;
-    });
-    if(p.uncertainty) html += `<div class="card"><h3>Not sure about</h3><p style="margin:0">${esc(p.uncertainty)}</p></div>`;
-  }
-  html += `<div id="plan-saved" class="muted" style="margin:0 0 10px"></div>
-    <details class="card"><summary>What the AI received (for checking)</summary><pre>${esc(lastPlan ? lastPlan.user : "")}</pre></details>`;
-  $("plan-result").innerHTML = html;
-  $("plan-result").scrollIntoView({behavior:"smooth"});
-  savePlan(raw, p);
-}
-function planSourceItem(id){
-  id = String(id).trim();
-  if(id==="SENSOR") return `<li><b>Sensor:</b> the kit readings of the beds (Menu ☰ → Kit data).</li>`;
-  if(id==="PLANTING") return `<li><b>Planting register:</b> what grows where and when it was sown.</li>`;
-  if(/^L\d+$/i.test(id)){ const l=state.logs.find(l=>l.id===id.toUpperCase());
-    return l ? `<li><b>${esc(l.id)} · log:</b> “${esc(l.text)}” <span class="muted">${esc(bedLabel(l.bed))}, ${esc(l.date)}</span></li>` : `<li><b>${esc(id)}:</b> not found in the logbook.</li>`; }
-  const saved = lastAsk; lastAsk = {bed:""}; const out = sourceItem(id); lastAsk = saved;   // reuse the Ask source list for K, A, WEATHER, GENERAL
-  return out;
-}
-// Recommendations are saved in the advice history too (prompt, answer), so they can be rated and learned from.
-async function savePlan(raw, p){
-  const rec = {date:today(), bed:"All beds", author:"", question:"Recommendations for today",
-    summary: p ? (p.summary||"") : "", options: p ? p.tasks.map((t,i)=>`${i+1}. ${t.task} (${t.bed||"Whole farm"})`).join(" | ") : String(raw).slice(0,300),
-    model: modelLabel(), prompt: lastPlan ? lastPlan.user : "", answer: raw, system: PLAN_PROMPT};
-  try{
-    let saved;
-    if(SHARED){ saved = (await sheetPost("advice", {advice: rec})).advice; }
-    else { const n = Math.max(0, ...state.advice.map(x=>parseInt(String(x.id).slice(1))||0)) + 1; saved = {...rec, id:"A"+n, rating:"", feedback:"", ratedBy:"", ratedOn:""}; }
-    state.advice.push(saved); store();
-    if($("plan-saved")) $("plan-saved").textContent = `Saved as ${saved.id} in the advice history (rate it there).`;
-  }catch(e){
-    if($("plan-saved")) $("plan-saved").textContent = `Not saved to the advice history (${e.message}).`;
-  }
-}
-
-// In-app yes/no question (replaces the browser's confirm pop-up). Resolves true or false.
-function askConfirm(title, text, yesLabel){
-  return new Promise(resolve=>{
-    $("modal-title").textContent = title; $("modal-text").textContent = text; $("modal-yes").textContent = yesLabel || "Delete";
-    const m=$("modal"); m.classList.remove("hidden"); $("modal-no").focus();
-    const done = ok => { m.classList.add("hidden"); m.onclick=null; document.removeEventListener("keydown", onKey); resolve(ok); };
-    const onKey = e => { if(e.key==="Escape") done(false); };
-    $("modal-yes").onclick = ()=>done(true); $("modal-no").onclick = ()=>done(false);
-    m.onclick = e => { if(e.target===m) done(false); };
-    document.addEventListener("keydown", onKey);
-  });
-}
-// Delete a log or knowledge entry after asking. A log and its knowledge entry share an id, so both go.
-async function deleteItem(btn, sheet, id){
-  const what = sheet==="Logs" ? `this log (${id})${/^K/.test(id)?" and its knowledge entry":""}` : `knowledge entry ${id}`;
-  if(!(await askConfirm("Are you sure you want to delete?", `This deletes ${what}. It can't be undone.`))) return;
-  busy(btn, async()=>{
-    if(SHARED) await sheetPost("delete", {sheet, id});
-    if(sheet==="Logs") state.logs = state.logs.filter(l=>l.id!==id);
-    if(sheet==="Knowledge" || /^K/.test(id)) state.knowledge = state.knowledge.filter(k=>k.id!==id);
-    store(); renderLogs(); renderKB();
-  }, sheet==="Logs" ? "log-list-msg" : "kb-list-msg");
+  $("log-list").innerHTML = state.logs.slice(0,20).map(l=>`<div class="kb"><span class="tag grey">${esc(l.bed)}</span><span class="muted">${esc(l.date)} · ${esc(l.author)}</span><div>${esc(l.text)}</div></div>`).join("") || '<p class="muted">No logs yet.</p>';
 }
 
 /* =====================================================================
    KIT VIEW
    ===================================================================== */
 function renderKit(){
-  $("kit-cards").innerHTML = beds().map(b=>{ const s=bedStatus(b.name);
-    return `<div class="card"><div class="status"><div><h3>${esc(b.name)}</h3>${plantsIn(b.name)?`<div style="font-size:13px;margin:-2px 0 4px">🌿 ${esc(plantsIn(b.name))} ${sownTag(b.name)}</div>`:""}<div class="muted">${esc(s.text.replace(b.name+": ",""))}</div></div><span class="lvl ${s.level}">${s.label}</span></div>${sparkline(s.rows)}</div>`; }).join("");
+  $("kit-cards").innerHTML = CONFIG.beds.map(b=>{ const s=bedStatus(b.name);
+    return `<div class="card"><div class="status"><div><h3>${esc(b.name)}</h3><div class="muted">${esc(s.text.replace(b.name+": ",""))}</div></div><span class="lvl ${s.level}">${s.label}</span></div>${sparkline(s.rows)}</div>`; }).join("");
 }
 function uploadKit(btn){
   const f=$("kit-file").files[0]; if(!f){ return; }
@@ -1236,9 +928,9 @@ function providerFields(){ const p=$("s-provider").value;
   $("s-key-fields").classList.toggle("hidden", p!=="anthropic" && p!=="openai");
   $("s-model").placeholder = CONFIG.defaultModels[p] || ""; }
 function fillSettings(){ const s=state.settings; $("s-provider").value=s.provider; $("s-key").value=s.key; $("s-model").value=s.model;
-  $("s-prompt").value=s.prompt; providerFields(); }
+  $("s-prompt").value=s.prompt; $("s-demo").checked=s.demo; providerFields(); }
 function saveSettings(){ Object.assign(state.settings,{provider:$("s-provider").value, key:$("s-key").value.trim(), model:$("s-model").value.trim(),
-  prompt:$("s-prompt").value, promptCustom:$("s-prompt").value!==DEFAULT_PROMPT, promptV:PROMPT_VERSION});
+  prompt:$("s-prompt").value, promptCustom:$("s-prompt").value!==DEFAULT_PROMPT, promptV:PROMPT_VERSION, demo:$("s-demo").checked});
   store(); $("s-msg").textContent="Saved ✓"; setTimeout(()=>$("s-msg").textContent="",2000); refresh(); }
 function initDataCard(){
   document.querySelectorAll(".local-only").forEach(el=>el.classList.toggle("hidden", SHARED));
@@ -1252,40 +944,37 @@ function exportData(){ const copy={...state, settings:{...state.settings, key:""
 function exportCSV(){ const q=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
   download("rewild-knowledge.csv", ["id,type,bed,status,author,date,text", ...state.knowledge.map(k=>[k.id,k.type,k.bed,k.status,k.author,k.date,k.text].map(q).join(","))].join("\n"), "text/csv"); }
 function importData(input){ const f=input.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=()=>{ try{ const s=JSON.parse(fr.result); const key=state.settings.key;
-  localStorage.setItem(KEY, JSON.stringify({...s, settings:{...s.settings, key}})); load(); store(); fillSettings(); refresh(); $("s-msg").textContent="Imported ✓"; }catch(e){ $("s-msg").textContent="That is not a valid backup file."; } }; fr.readAsText(f); }
-async function resetAll(){ if(!(await askConfirm("Reset to example data?", "This replaces everything stored in this browser with the example data.", "Reset"))) return; const s=state.settings; state=freshState(); state.settings={...s, prompt:state.settings.prompt}; store(); fillSettings(); refresh(); }
+  localStorage.setItem(KEY, JSON.stringify({...s, settings:{...s.settings, key}})); load(); store(); fillSettings(); refresh(); $("s-msg").textContent="Imported ✓"; }catch(e){ alert("Not a valid backup file."); } }; fr.readAsText(f); }
+function resetAll(){ if(!confirm("Replace everything in this browser with the example data?")) return; const s=state.settings; state=freshState(); state.settings={...s, prompt:state.settings.prompt}; store(); fillSettings(); refresh(); }
 
 /* =====================================================================
    UI plumbing
    ===================================================================== */
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-function show(v){ ["ask","plan","kit","kb","log","advice","settings"].forEach(x=>$("v-"+x).classList.toggle("hidden",x!==v));
-  document.querySelectorAll("#menu button, .bottom-nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+function show(v){ ["ask","kit","kb","log","advice","settings"].forEach(x=>$("v-"+x).classList.toggle("hidden",x!==v));
+  document.querySelectorAll("#menu button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
   closeMenu(); if(v==="settings") fillSettings(); refresh(); window.scrollTo(0,0); pull(); }
 function toggleMenu(e){ e.stopPropagation(); const open=$("menu").classList.toggle("hidden")===false; $("menu-btn").setAttribute("aria-expanded", open); }
 function closeMenu(){ $("menu").classList.add("hidden"); $("menu-btn").setAttribute("aria-expanded", false); }
 document.addEventListener("click", e=>{ if(!$("menu").contains(e.target)) closeMenu(); });
 document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeMenu(); });
 function refresh(){
-  const bedOpts = beds().map(b=>[b.name,b.name]);
-  fillSelect("q-bed", bedOpts, true); fillSelect("kit-bed", bedOpts, true);
-  fillSelect("log-bed", [["General","General (whole farm)"], ...bedOpts], true);
-  fillSelect("kb-bed", [["All","General (all beds)"], ...bedOpts], true);
+  const opts=CONFIG.beds.map(b=>`<option>${esc(b.name)}</option>`).join("");
+  ["q-bed","kit-bed","log-bed"].forEach(id=>{ const v=$(id).value; $(id).innerHTML=opts; if(v) $(id).value=v; });
+  const kv=$("kb-bed").value; $("kb-bed").innerHTML='<option>All</option>'+opts; if(kv) $("kb-bed").value=kv;
   updateBedStatus(); renderKit(); renderPlantings(); renderKB(); renderLogs(); renderAdvice();
   const s=state.settings;
   $("q-mode").textContent = !aiReady() ? "Manual AI mode (Menu ☰ → Settings to add a key)"
     : "AI: "+(s.model||CONFIG.defaultModels[s.provider]);
-  $("plan-mode").textContent = $("q-mode").textContent;
 }
 function updateBedStatus(){ const bed=$("q-bed").value, s=bedStatus(bed), p=plantsIn(bed);
   $("q-bedstatus").innerHTML=`<span class="lvl ${s.level}" style="font-size:12px;padding:2px 8px;border-radius:99px">${s.label}</span> ${esc(s.text)}`
-    + `<div style="margin-top:6px">🌿 ${p ? "Growing here: "+esc(p)+" "+sownTag(bed) : '<span class="muted">What grows here isn\'t filled in yet (Menu ☰ → Knowledge &amp; beds).</span>'}</div>`; }
+    + `<div style="margin-top:6px">🌿 ${p ? "Growing here: "+esc(p) : '<span class="muted">What grows here isn\'t filled in yet (Menu ☰ → Knowledge → What grows where).</span>'}</div>`; }
 $("s-provider").addEventListener("change", providerFields);
 
 load(); initDataCard(); refresh(); pull(true); loadWeather();
 $("q-bed").addEventListener("change", updateBedStatus);
-$("q-text").addEventListener("input", e=>autoGrow(e.target)); autoGrow($("q-text"));
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") pull(); });
 </script>
 </body>
